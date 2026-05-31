@@ -1,0 +1,2072 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>交易计算器 — 股票盈亏计算器</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #f0f2f5;
+            --surface: #ffffff;
+            --surface-glass: rgba(255, 255, 255, 0.75);
+            --surface-elevated: #fafbfc;
+            --text-primary: #1a1d23;
+            --text-secondary: #5a5f6b;
+            --text-tertiary: #8b909b;
+            --border: #e2e5ea;
+            --border-light: #eef0f4;
+            --accent: #4f6ef7;
+            --accent-glow: rgba(79, 110, 247, 0.2);
+            --profit: #e0483d;
+            --profit-bg: rgba(224, 72, 61, 0.08);
+            --profit-glow: rgba(224, 72, 61, 0.25);
+            --loss: #2ea868;
+            --loss-bg: rgba(46, 168, 104, 0.08);
+            --loss-glow: rgba(46, 168, 104, 0.25);
+            --neutral: #7c828d;
+            --neutral-bg: rgba(124, 130, 141, 0.06);
+            --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
+            --shadow: 0 2px 8px rgba(0, 0, 0, 0.06), 0 1px 3px rgba(0, 0, 0, 0.04);
+            --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.08), 0 2px 8px rgba(0, 0, 0, 0.04);
+            --shadow-glow-profit: 0 0 40px rgba(224, 72, 61, 0.3), 0 0 80px rgba(224, 72, 61, 0.1);
+            --shadow-glow-loss: 0 0 40px rgba(46, 168, 104, 0.3), 0 0 80px rgba(46, 168, 104, 0.1);
+            --radius-sm: 8px;
+            --radius: 12px;
+            --radius-lg: 16px;
+            --radius-xl: 20px;
+            --transition: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            --transition-spring: 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+            --glass-blur: 16px;
+        }
+
+        [data-theme="dark"] {
+            --bg: #0d1117;
+            --surface: #161b22;
+            --surface-glass: rgba(22, 27, 34, 0.8);
+            --surface-elevated: #1c2129;
+            --text-primary: #e6edf3;
+            --text-secondary: #b0b8c4;
+            --text-tertiary: #6e7681;
+            --border: #30363d;
+            --border-light: #21262d;
+            --accent: #6d8cff;
+            --accent-glow: rgba(109, 140, 255, 0.25);
+            --profit: #ff5c52;
+            --profit-bg: rgba(255, 92, 82, 0.12);
+            --profit-glow: rgba(255, 92, 82, 0.35);
+            --loss: #3dd68c;
+            --loss-bg: rgba(61, 214, 140, 0.12);
+            --loss-glow: rgba(61, 214, 140, 0.35);
+            --neutral: #8b949e;
+            --neutral-bg: rgba(139, 148, 158, 0.08);
+            --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.2);
+            --shadow: 0 2px 8px rgba(0, 0, 0, 0.3), 0 1px 3px rgba(0, 0, 0, 0.2);
+            --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.4), 0 2px 8px rgba(0, 0, 0, 0.3);
+            --shadow-glow-profit: 0 0 50px rgba(255, 92, 82, 0.4), 0 0 100px rgba(255, 92, 82, 0.15);
+            --shadow-glow-loss: 0 0 50px rgba(61, 214, 140, 0.4), 0 0 100px rgba(61, 214, 140, 0.15);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: var(--bg);
+            color: var(--text-primary);
+            min-height: 100vh;
+            transition: background var(--transition), color var(--transition);
+            line-height: 1.5;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        .app-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 16px 20px 40px;
+        }
+
+        .app-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 20px;
+            margin-bottom: 20px;
+            background: var(--surface-glass);
+            backdrop-filter: blur(var(--glass-blur));
+            -webkit-backdrop-filter: blur(var(--glass-blur));
+            border: 1px solid var(--border-light);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-sm);
+            transition: all var(--transition);
+            position: sticky;
+            top: 12px;
+            z-index: 100;
+        }
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .logo-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: var(--radius-sm);
+            background: linear-gradient(135deg, var(--accent), #8b5cf6);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            color: #fff;
+            flex-shrink: 0;
+            box-shadow: 0 4px 12px var(--accent-glow);
+        }
+        .app-title {
+            font-weight: 700;
+            font-size: 1.25rem;
+            letter-spacing: -0.02em;
+            color: var(--text-primary);
+        }
+        .app-subtitle {
+            font-size: 0.7rem;
+            color: var(--text-tertiary);
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            font-weight: 500;
+        }
+        .header-actions {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+        .icon-btn {
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            border: 1px solid var(--border);
+            background: var(--surface);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            color: var(--text-secondary);
+            transition: all var(--transition);
+            position: relative;
+        }
+        .icon-btn:hover {
+            background: var(--surface-elevated);
+            border-color: var(--accent);
+            color: var(--accent);
+            box-shadow: var(--shadow);
+        }
+        .icon-btn:focus-visible {
+            outline: 2px solid var(--accent);
+            outline-offset: 3px;
+        }
+        .theme-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            position: absolute;
+            top: 6px;
+            right: 6px;
+            transition: all var(--transition);
+        }
+        [data-theme="dark"] .theme-dot {
+            background: #ffd700;
+            box-shadow: 0 0 8px rgba(255, 215, 0, 0.6);
+        }
+        [data-theme="light"] .theme-dot,
+        :root .theme-dot {
+            background: #4a5568;
+            box-shadow: 0 0 6px rgba(74, 85, 104, 0.4);
+        }
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            align-items: start;
+        }
+        @media (max-width: 860px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+            .app-header {
+                padding: 12px 16px;
+                top: 8px;
+            }
+            .app-title {
+                font-size: 1.1rem;
+            }
+        }
+
+        .card {
+            background: var(--surface-glass);
+            backdrop-filter: blur(var(--glass-blur));
+            -webkit-backdrop-filter: blur(var(--glass-blur));
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            padding: 20px 22px;
+            box-shadow: var(--shadow);
+            transition: all var(--transition);
+        }
+        .card-header {
+            font-weight: 600;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-tertiary);
+            margin-bottom: 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .card-header .dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: var(--accent);
+            box-shadow: 0 0 8px var(--accent-glow);
+        }
+
+        .input-group {
+            margin-bottom: 14px;
+        }
+        .input-label {
+            display: block;
+            font-size: 0.78rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+            margin-bottom: 5px;
+            letter-spacing: 0.01em;
+        }
+        .input-row {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+        .input-wrapper {
+            position: relative;
+            flex: 1;
+        }
+        .input-wrapper input {
+            width: 100%;
+            padding: 10px 14px;
+            padding-right: 50px;
+            font-family: 'JetBrains Mono', 'Consolas', 'Monaco', monospace;
+            font-size: 0.9rem;
+            font-weight: 500;
+            border: 1.5px solid var(--border);
+            border-radius: var(--radius-sm);
+            background: var(--surface);
+            color: var(--text-primary);
+            transition: all var(--transition);
+            letter-spacing: 0.01em;
+            outline: none;
+        }
+        .input-wrapper input:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px var(--accent-glow);
+        }
+        .input-wrapper input.error {
+            border-color: #e0483d;
+            box-shadow: 0 0 0 3px rgba(224, 72, 61, 0.15);
+            animation: shake 0.5s ease;
+        }
+        .input-suffix {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 0.75rem;
+            color: var(--text-tertiary);
+            pointer-events: none;
+            font-weight: 500;
+        }
+        .error-msg {
+            font-size: 0.7rem;
+            color: #e0483d;
+            margin-top: 3px;
+            display: none;
+            font-weight: 500;
+        }
+        .error-msg.visible {
+            display: block;
+            animation: fadeIn 0.2s ease;
+        }
+        @keyframes shake {
+            0%,
+            100% {
+                transform: translateX(0);
+            }
+            20% {
+                transform: translateX(-5px);
+            }
+            40% {
+                transform: translateX(5px);
+            }
+            60% {
+                transform: translateX(-4px);
+            }
+            80% {
+                transform: translateX(3px);
+            }
+        }
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-4px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .toggle-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 12px;
+        }
+        .toggle-switch {
+            position: relative;
+            width: 44px;
+            height: 26px;
+            flex-shrink: 0;
+        }
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: var(--border);
+            border-radius: 26px;
+            transition: all var(--transition);
+        }
+        .toggle-slider::before {
+            content: '';
+            position: absolute;
+            height: 20px;
+            width: 20px;
+            left: 3px;
+            bottom: 3px;
+            background: #fff;
+            border-radius: 50%;
+            transition: all var(--transition);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+        }
+        .toggle-switch input:checked+.toggle-slider {
+            background: var(--accent);
+        }
+        .toggle-switch input:checked+.toggle-slider::before {
+            transform: translateX(18px);
+        }
+        .toggle-label {
+            font-size: 0.8rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+        }
+        .toggle-sub-row {
+            margin-left: 54px;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transition: all var(--transition);
+        }
+        .toggle-sub-row.hidden {
+            display: none;
+        }
+
+        .mode-tabs {
+            display: flex;
+            gap: 4px;
+            background: var(--neutral-bg);
+            border-radius: var(--radius-sm);
+            padding: 4px;
+            margin-bottom: 16px;
+        }
+        .mode-tab {
+            flex: 1;
+            padding: 9px 14px;
+            text-align: center;
+            font-size: 0.8rem;
+            font-weight: 600;
+            border-radius: 6px;
+            cursor: pointer;
+            border: none;
+            background: transparent;
+            color: var(--text-secondary);
+            transition: all var(--transition);
+            letter-spacing: 0.01em;
+        }
+        .mode-tab.active {
+            background: var(--surface);
+            color: var(--text-primary);
+            box-shadow: var(--shadow-sm);
+        }
+        .mode-tab:hover:not(.active) {
+            color: var(--text-primary);
+            background: rgba(128, 128, 128, 0.06);
+        }
+
+        .preset-section {
+            margin-bottom: 12px;
+        }
+        .preset-label {
+            font-size: 0.7rem;
+            font-weight: 600;
+            color: var(--text-tertiary);
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            margin-bottom: 6px;
+        }
+        .preset-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+        .preset-tag {
+            padding: 6px 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            border-radius: 20px;
+            border: 1.2px solid var(--border);
+            background: var(--surface);
+            cursor: pointer;
+            transition: all var(--transition);
+            color: var(--text-secondary);
+            font-family: 'JetBrains Mono', 'Consolas', monospace;
+            letter-spacing: 0.02em;
+            white-space: nowrap;
+            position: relative;
+            overflow: hidden;
+        }
+        .preset-tag:hover {
+            transform: scale(1.05);
+            border-color: var(--accent);
+            color: var(--accent);
+            box-shadow: var(--shadow);
+        }
+        .preset-tag:active {
+            transform: scale(0.95);
+        }
+        .preset-tag.profit-tag:hover {
+            border-color: var(--profit);
+            color: var(--profit);
+            background: var(--profit-bg);
+        }
+        .preset-tag.loss-tag:hover {
+            border-color: var(--loss);
+            color: var(--loss);
+            background: var(--loss-bg);
+        }
+        .preset-tag.selected {
+            background: var(--accent);
+            color: #fff;
+            border-color: var(--accent);
+            box-shadow: 0 0 16px var(--accent-glow);
+            animation: pulse-tag 0.3s ease;
+        }
+        .preset-tag.selected.profit-tag {
+            background: var(--profit);
+            border-color: var(--profit);
+            box-shadow: 0 0 16px var(--profit-glow);
+        }
+        .preset-tag.selected.loss-tag {
+            background: var(--loss);
+            border-color: var(--loss);
+            box-shadow: 0 0 16px var(--loss-glow);
+        }
+        @keyframes pulse-tag {
+            0% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.08);
+            }
+            100% {
+                transform: scale(1);
+            }
+        }
+        .ripple {
+            position: absolute;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.5);
+            transform: scale(0);
+            animation: ripple-effect 0.6s ease-out;
+            pointer-events: none;
+        }
+        @keyframes ripple-effect {
+            to {
+                transform: scale(4);
+                opacity: 0;
+            }
+        }
+
+        .result-card {
+            background: var(--surface-glass);
+            backdrop-filter: blur(var(--glass-blur));
+            -webkit-backdrop-filter: blur(var(--glass-blur));
+            border: 2px solid var(--border);
+            border-radius: var(--radius-xl);
+            padding: 24px;
+            box-shadow: var(--shadow-lg);
+            transition: all var(--transition-spring);
+            position: relative;
+            overflow: hidden;
+        }
+        .result-card.has-result {
+            animation: slideUpSpring 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        .result-card.profit-glow {
+            border-color: rgba(224, 72, 61, 0.4);
+            box-shadow: var(--shadow-glow-profit), var(--shadow-lg);
+        }
+        .result-card.loss-glow {
+            border-color: rgba(46, 168, 104, 0.4);
+            box-shadow: var(--shadow-glow-loss), var(--shadow-lg);
+        }
+        @keyframes slideUpSpring {
+            0% {
+                opacity: 0;
+                transform: translateY(30px) scale(0.95);
+            }
+            60% {
+                opacity: 1;
+                transform: translateY(-6px) scale(1.02);
+            }
+            80% {
+                transform: translateY(2px) scale(0.99);
+            }
+            100% {
+                transform: translateY(0) scale(1);
+            }
+        }
+        .result-price {
+            font-family: 'JetBrains Mono', 'Consolas', monospace;
+            font-size: 2.6rem;
+            font-weight: 800;
+            letter-spacing: -0.03em;
+            text-align: center;
+            margin: 8px 0;
+            transition: color var(--transition);
+        }
+        .result-price.profit {
+            color: var(--profit);
+        }
+        .result-price.loss {
+            color: var(--loss);
+        }
+        .result-price.neutral {
+            color: var(--neutral);
+        }
+        .result-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 16px;
+        }
+        .result-item {
+            background: var(--neutral-bg);
+            border-radius: var(--radius-sm);
+            padding: 12px;
+            text-align: center;
+            transition: all var(--transition);
+        }
+        .result-item .item-label {
+            font-size: 0.68rem;
+            color: var(--text-tertiary);
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            font-weight: 500;
+            margin-bottom: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+        }
+        .result-item .item-label .info-tip {
+            font-size: 0.6rem;
+            color: var(--text-tertiary);
+            background: var(--neutral-bg);
+            border-radius: 50%;
+            width: 14px;
+            height: 14px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            cursor: help;
+            font-weight: 700;
+            line-height: 1;
+            position: relative;
+            z-index: 5;
+            border: 1px solid transparent;
+            transition: all 0.2s;
+        }
+        .result-item .item-label .info-tip:hover {
+            background: var(--accent);
+            color: #fff;
+            border-color: var(--accent);
+        }
+        .info-tip[data-tooltip] {
+            position: relative;
+        }
+        .info-tip[data-tooltip]::after {
+            content: attr(data-tooltip);
+            position: absolute;
+            bottom: 130%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #1a1d23;
+            color: #fff;
+            font-size: 0.7rem;
+            font-weight: 400;
+            padding: 6px 10px;
+            border-radius: 6px;
+            white-space: nowrap;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.15s ease, transform 0.15s ease;
+            z-index: 999;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            letter-spacing: 0.02em;
+            text-transform: none;
+            font-family: 'Inter', sans-serif;
+        }
+        .info-tip[data-tooltip]:hover::after {
+            opacity: 1;
+            transform: translateX(-50%) translateY(-2px);
+        }
+        .result-item .item-value {
+            font-family: 'JetBrains Mono', 'Consolas', monospace;
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            letter-spacing: 0.01em;
+        }
+        .result-item .item-value.profit {
+            color: var(--profit);
+        }
+        .result-item .item-value.loss {
+            color: var(--loss);
+        }
+        .copy-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            margin-top: 16px;
+            padding: 10px 20px;
+            font-size: 0.82rem;
+            font-weight: 600;
+            border-radius: 24px;
+            border: 1.5px solid var(--accent);
+            background: var(--surface);
+            color: var(--accent);
+            cursor: pointer;
+            transition: all var(--transition);
+            letter-spacing: 0.01em;
+            width: 100%;
+            justify-content: center;
+        }
+        .copy-btn:hover {
+            background: var(--accent);
+            color: #fff;
+            box-shadow: 0 4px 16px var(--accent-glow);
+        }
+        .copy-btn.copied {
+            background: #2ea868;
+            border-color: #2ea868;
+            color: #fff;
+            animation: pulse-copy 0.4s ease;
+        }
+        @keyframes pulse-copy {
+            0%,
+            100% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.04);
+            }
+        }
+
+        .reverse-toggle {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 0.78rem;
+            color: var(--accent);
+            cursor: pointer;
+            font-weight: 500;
+            margin-top: 12px;
+            background: none;
+            border: none;
+            padding: 6px 0;
+            transition: all var(--transition);
+        }
+        .reverse-toggle:hover {
+            color: var(--text-primary);
+            text-decoration: underline;
+        }
+        .reverse-panel {
+            margin-top: 12px;
+            padding: 16px;
+            background: var(--neutral-bg);
+            border-radius: var(--radius-sm);
+            animation: fadeIn 0.3s ease;
+            display: none;
+        }
+        .reverse-panel.open {
+            display: block;
+        }
+
+        .collapsible-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer;
+            padding: 10px 0;
+            font-weight: 600;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            border-top: 1px solid var(--border-light);
+            margin-top: 8px;
+            letter-spacing: 0.02em;
+            transition: color var(--transition);
+        }
+        .collapsible-header:hover {
+            color: var(--text-primary);
+        }
+        .collapsible-header .arrow {
+            transition: transform var(--transition);
+            font-size: 0.7rem;
+        }
+        .collapsible-header.open .arrow {
+            transform: rotate(180deg);
+        }
+        .collapsible-body {
+            overflow: hidden;
+            max-height: 0;
+            transition: max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1), padding 0.3s ease;
+            padding: 0;
+        }
+        .collapsible-body.open {
+            max-height: 600px;
+            padding: 8px 0 16px;
+        }
+
+        .batch-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.78rem;
+            margin-top: 8px;
+        }
+        .batch-table th,
+        .batch-table td {
+            padding: 8px 6px;
+            text-align: center;
+            border-bottom: 1px solid var(--border-light);
+            font-family: 'JetBrains Mono', 'Consolas', monospace;
+        }
+        .batch-table th {
+            font-weight: 600;
+            color: var(--text-tertiary);
+            font-size: 0.68rem;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+            font-family: 'Inter', sans-serif;
+        }
+        .batch-table .del-batch {
+            cursor: pointer;
+            color: #e0483d;
+            font-weight: 700;
+            font-size: 1rem;
+            transition: all var(--transition);
+            background: none;
+            border: none;
+            padding: 2px 8px;
+            border-radius: 4px;
+        }
+        .batch-table .del-batch:hover {
+            background: rgba(224, 72, 61, 0.1);
+        }
+        .add-batch-btn {
+            font-size: 0.75rem;
+            padding: 7px 14px;
+            border-radius: 18px;
+            border: 1.5px dashed var(--border);
+            background: transparent;
+            cursor: pointer;
+            color: var(--text-secondary);
+            font-weight: 500;
+            transition: all var(--transition);
+            margin-top: 8px;
+        }
+        .add-batch-btn:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+            background: var(--accent-glow);
+        }
+
+        .history-section {
+            margin-top: 24px;
+        }
+        .history-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            max-height: 400px;
+            overflow-y: auto;
+            padding-right: 4px;
+        }
+        .history-list::-webkit-scrollbar {
+            width: 4px;
+        }
+        .history-list::-webkit-scrollbar-thumb {
+            background: var(--border);
+            border-radius: 4px;
+        }
+        .history-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 16px;
+            background: var(--surface);
+            border: 1px solid var(--border-light);
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            transition: all var(--transition);
+            font-size: 0.78rem;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .history-item:hover {
+            border-color: var(--accent);
+            box-shadow: var(--shadow);
+            transform: translateY(-1px);
+        }
+        .history-item .hi-date {
+            color: var(--text-tertiary);
+            font-size: 0.7rem;
+            min-width: 100px;
+        }
+        .history-item .hi-info {
+            font-family: 'JetBrains Mono', 'Consolas', monospace;
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            flex: 1;
+            text-align: right;
+        }
+        .history-item .hi-pl {
+            font-weight: 700;
+            font-family: 'JetBrains Mono', 'Consolas', monospace;
+            min-width: 70px;
+            text-align: right;
+        }
+        .history-item .hi-pl.profit {
+            color: var(--profit);
+        }
+        .history-item .hi-pl.loss {
+            color: var(--loss);
+        }
+        .clear-history-btn {
+            font-size: 0.72rem;
+            padding: 6px 14px;
+            border-radius: 16px;
+            border: 1px solid #e0483d;
+            background: transparent;
+            color: #e0483d;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all var(--transition);
+            margin-top: 10px;
+        }
+        .clear-history-btn:hover {
+            background: rgba(224, 72, 61, 0.1);
+        }
+
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 200;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            animation: fadeIn 0.2s ease;
+        }
+        .modal {
+            background: var(--surface);
+            border-radius: var(--radius-lg);
+            padding: 24px;
+            max-width: 500px;
+            width: 90%;
+            box-shadow: var(--shadow-lg);
+            border: 1px solid var(--border);
+        }
+        .modal h3 {
+            font-size: 1rem;
+            margin-bottom: 16px;
+        }
+        .modal-actions {
+            display: flex;
+            gap: 8px;
+            justify-content: flex-end;
+            margin-top: 16px;
+        }
+        .btn {
+            padding: 8px 18px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 0.8rem;
+            cursor: pointer;
+            border: none;
+            letter-spacing: 0.01em;
+            transition: all var(--transition);
+        }
+        .btn-primary {
+            background: var(--accent);
+            color: #fff;
+        }
+        .btn-primary:hover {
+            box-shadow: 0 4px 16px var(--accent-glow);
+        }
+        .btn-secondary {
+            background: var(--neutral-bg);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+        }
+        .btn-danger {
+            background: #e0483d;
+            color: #fff;
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #1a1d23;
+            color: #fff;
+            padding: 10px 22px;
+            border-radius: 24px;
+            font-size: 0.8rem;
+            font-weight: 500;
+            z-index: 300;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+            animation: toastIn 0.35s cubic-bezier(0.34, 1.56, 0.64, 1), toastOut 0.3s ease 1.8s forwards;
+            pointer-events: none;
+        }
+        @keyframes toastIn {
+            from {
+                opacity: 0;
+                transform: translateX(-50%) translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(-50%) translateY(0);
+            }
+        }
+        @keyframes toastOut {
+            to {
+                opacity: 0;
+                transform: translateX(-50%) translateY(-10px);
+            }
+        }
+
+        .summary-bar {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 16px;
+            background: var(--neutral-bg);
+            border-radius: var(--radius-sm);
+            margin-bottom: 12px;
+            font-family: 'JetBrains Mono', 'Consolas', monospace;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            letter-spacing: 0.01em;
+        }
+        .summary-bar .sb-label {
+            font-family: 'Inter', sans-serif;
+            font-weight: 500;
+            font-size: 0.7rem;
+            color: var(--text-tertiary);
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+        }
+
+        .result-badge {
+            display: inline-block;
+            font-size: 0.6rem;
+            font-weight: 600;
+            padding: 2px 8px;
+            border-radius: 10px;
+            background: var(--accent-glow);
+            color: var(--accent);
+            margin-left: 6px;
+            letter-spacing: 0.03em;
+            text-transform: uppercase;
+            vertical-align: middle;
+        }
+
+        *:focus-visible {
+            outline: 2px solid var(--accent);
+            outline-offset: 2px;
+            border-radius: 2px;
+        }
+
+        @media (max-width: 600px) {
+            .result-price {
+                font-size: 2rem;
+            }
+            .result-grid {
+                grid-template-columns: 1fr;
+            }
+            .preset-tags {
+                gap: 4px;
+            }
+            .preset-tag {
+                padding: 5px 9px;
+                font-size: 0.7rem;
+            }
+            .card {
+                padding: 14px 16px;
+            }
+            .history-item {
+                font-size: 0.7rem;
+                padding: 10px 12px;
+            }
+            .toggle-sub-row {
+                margin-left: 0;
+            }
+        }
+    </style>
+</head>
+<body data-theme="light">
+
+    <div class="app-container">
+        <header class="app-header">
+            <div class="header-left">
+                <div class="logo-icon" aria-hidden="true">📊</div>
+                <div>
+                    <div class="app-title">交易计算器</div>
+                    <div class="app-subtitle">Profit &amp; Loss Calculator</div>
+                </div>
+            </div>
+            <div class="header-actions">
+                <button class="icon-btn" id="settingsBtn" aria-label="预设设置" title="自定义预设百分比">
+                    ⚙️<span class="theme-dot"></span>
+                </button>
+                <button class="icon-btn" id="themeToggle" aria-label="切换深色/浅色主题" title="切换主题">
+                    <span id="themeIcon">🌙</span>
+                </button>
+            </div>
+        </header>
+
+        <div class="main-grid">
+            <div class="card" id="inputCard">
+                <div class="card-header"><span class="dot"></span>交易输入</div>
+                <div class="input-group">
+                    <label class="input-label" for="marketSelect">市场惯例</label>
+                    <select id="marketSelect" style="width:100%;padding:10px 14px;border-radius:8px;border:1.5px solid var(--border);background:var(--surface);color:var(--text-primary);font-family:'Inter',sans-serif;font-size:0.85rem;cursor:pointer;">
+                        <option value="us">美股（支持小数股）</option>
+                        <option value="a">A股（每手100股）</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label class="input-label" for="buyPrice">买入价格（每股）</label>
+                    <div class="input-wrapper">
+                        <input type="number" id="buyPrice" placeholder="0.00" step="any" min="0.0001" aria-label="买入价格">
+                        <span class="input-suffix">元/股</span>
+                    </div>
+                    <div class="error-msg" id="buyPriceError">请输入正数价格</div>
+                </div>
+                <div class="input-group">
+                    <label class="input-label" for="quantity">数量（股数）</label>
+                    <div class="input-wrapper">
+                        <input type="number" id="quantity" placeholder="0" step="any" min="0.0001" aria-label="数量">
+                        <span class="input-suffix">股</span>
+                    </div>
+                    <div class="error-msg" id="quantityError">请输入正数数量</div>
+                    <div class="error-msg" id="aShareError" style="color:#e67e22;">A股需为100的整数倍，已自动修正</div>
+                </div>
+                <div class="summary-bar" id="totalInvestmentDisplay">
+                    <span class="sb-label">总投资金额</span>
+                    <span id="totalInvestmentValue">¥0.00</span>
+                </div>
+
+                <!-- 手续费主开关 -->
+                <div class="toggle-row">
+                    <label class="toggle-switch" for="feeToggle">
+                        <input type="checkbox" id="feeToggle">
+                        <span class="toggle-slider"></span>
+                    </label>
+                    <span class="toggle-label">启用手续费与佣金</span>
+                </div>
+                <div class="input-group" id="feeInputGroup" style="display:none;">
+                    <label class="input-label" for="feeAmount">手续费（固定金额）</label>
+                    <div class="input-wrapper">
+                        <input type="number" id="feeAmount" placeholder="0.00" step="any" min="0" value="0">
+                        <span class="input-suffix">元</span>
+                    </div>
+                </div>
+
+                <!-- 手续费计入盈利目标子开关 -->
+                <div class="toggle-sub-row hidden" id="feeIncludedGroup">
+                    <label class="toggle-switch" for="feeIncludedToggle">
+                        <input type="checkbox" id="feeIncludedToggle" checked>
+                        <span class="toggle-slider"></span>
+                    </label>
+                    <span class="toggle-label">手续费计入盈利目标</span>
+                    <span class="info-tip" data-tooltip="关闭后，目标卖出价仅基于买入成本计算，手续费将单独显示但不影响目标价">?</span>
+                </div>
+
+                <div class="collapsible-header" id="advancedFeesHeader">
+                    <span>📐 高级费用设置</span>
+                    <span class="arrow">▼</span>
+                </div>
+                <div class="collapsible-body" id="advancedFeesBody">
+                    <div class="input-group">
+                        <label class="input-label" for="commissionRate">佣金费率 (%)</label>
+                        <div class="input-wrapper"><input type="number" id="commissionRate" placeholder="0.03" step="any" min="0" value="0"><span class="input-suffix">%</span></div>
+                    </div>
+                    <div class="input-group">
+                        <label class="input-label" for="minCommission">最低佣金</label>
+                        <div class="input-wrapper"><input type="number" id="minCommission" placeholder="5" step="any" min="0" value="0"><span class="input-suffix">元</span></div>
+                    </div>
+                    <div class="input-group">
+                        <label class="input-label" for="stampTax">印花税（卖出）</label>
+                        <div class="input-wrapper"><input type="number" id="stampTax" placeholder="0.1" step="any" min="0" value="0"><span class="input-suffix">%</span></div>
+                    </div>
+                </div>
+
+                <div class="collapsible-header" id="batchHeader">
+                    <span>📦 多笔持仓均价计算（批次管理器）</span>
+                    <span class="arrow">▼</span>
+                </div>
+                <div class="collapsible-body" id="batchBody">
+                    <table class="batch-table" id="batchTable">
+                        <thead><tr><th>批次</th><th>价格</th><th>数量</th><th>金额</th><th></th></tr></thead>
+                        <tbody id="batchTbody">
+                            <tr><td>1</td><td><input type="number" step="any" min="0.0001" class="batch-price" style="width:80px;padding:4px;border-radius:4px;border:1px solid var(--border);background:var(--surface);color:var(--text-primary);font-family:'JetBrains Mono',monospace;font-size:0.75rem;text-align:center;" value=""></td><td><input type="number" step="any" min="0.0001" class="batch-qty" style="width:70px;padding:4px;border-radius:4px;border:1px solid var(--border);background:var(--surface);color:var(--text-primary);font-family:'JetBrains Mono',monospace;font-size:0.75rem;text-align:center;" value=""></td><td class="batch-amount" style="font-family:'JetBrains Mono',monospace;font-size:0.75rem;">—</td><td><button class="del-batch" title="删除">×</button></td></tr>
+                        </tbody>
+                    </table>
+                    <button class="add-batch-btn" id="addBatchBtn">+ 添加批次</button>
+                    <div style="margin-top:8px;font-size:0.75rem;color:var(--text-secondary);">
+                        加权均价：<strong id="avgPriceDisplay" style="font-family:'JetBrains Mono',monospace;">—</strong> &nbsp;|&nbsp; 总数量：<strong id="totalQtyDisplay" style="font-family:'JetBrains Mono',monospace;">—</strong>
+                        <button id="syncBatchBtn" style="margin-left:8px;padding:4px 10px;border-radius:12px;border:1px solid var(--accent);background:transparent;color:var(--accent);cursor:pointer;font-size:0.7rem;font-weight:600;">同步到主输入</button>
+                    </div>
+                </div>
+
+                <div class="mode-tabs" style="margin-top:16px;">
+                    <button class="mode-tab active" data-mode="percent">按百分比计算</button>
+                    <button class="mode-tab" data-mode="amount">按目标金额计算</button>
+                </div>
+                <div id="modePercent">
+                    <div class="preset-section">
+                        <div class="preset-label">📈 盈利预设</div>
+                        <div class="preset-tags" id="profitPresets"></div>
+                    </div>
+                    <div class="preset-section">
+                        <div class="preset-label">📉 亏损预设</div>
+                        <div class="preset-tags" id="lossPresets"></div>
+                    </div>
+                    <div class="input-group">
+                        <label class="input-label" for="customPercent">自定义百分比</label>
+                        <div class="input-wrapper">
+                            <input type="number" id="customPercent" placeholder="例：12.5 或 -8" step="any" aria-label="自定义百分比">
+                            <span class="input-suffix">%</span>
+                        </div>
+                    </div>
+                </div>
+                <div id="modeAmount" style="display:none;">
+                    <div class="input-group">
+                        <label class="input-label" for="targetAmount">期望盈亏金额（正=盈利，负=亏损）</label>
+                        <div class="input-wrapper">
+                            <input type="number" id="targetAmount" placeholder="例：500 或 -300" step="any" aria-label="目标盈亏金额">
+                            <span class="input-suffix">元</span>
+                        </div>
+                    </div>
+                </div>
+                <button id="calculateBtn" style="width:100%;padding:12px;border-radius:24px;border:none;background:var(--accent);color:#fff;font-weight:700;font-size:0.9rem;cursor:pointer;letter-spacing:0.02em;transition:all var(--transition);margin-top:8px;box-shadow:0 4px 16px var(--accent-glow);" disabled>
+                    计算目标卖出价
+                </button>
+                <div style="text-align:center;margin-top:6px;font-size:0.7rem;color:var(--text-tertiary);" id="calcHint">请先输入买入价格和数量</div>
+            </div>
+
+            <div>
+                <div class="result-card" id="resultCard">
+                    <div class="card-header"><span class="dot"></span>计算结果</div>
+                    <div class="result-price neutral" id="resultPrice">—</div>
+                    <div style="text-align:center;font-size:0.75rem;color:var(--text-tertiary);" id="resultLabel">目标卖出价</div>
+                    <div class="result-grid" id="resultGrid">
+                        <div class="result-item">
+                            <div class="item-label">每股盈亏</div>
+                            <div class="item-value" id="perSharePL">—</div>
+                        </div>
+                        <div class="result-item">
+                            <div class="item-label">总盈亏金额</div>
+                            <div class="item-value" id="totalPL">—</div>
+                        </div>
+                        <div class="result-item">
+                            <div class="item-label">总投资金额</div>
+                            <div class="item-value" id="totalInvestmentResult">—</div>
+                        </div>
+                        <div class="result-item">
+                            <div class="item-label">卖出总金额</div>
+                            <div class="item-value" id="totalSellAmount">—</div>
+                        </div>
+                        <div class="result-item" id="feeItem" style="display:none;">
+                            <div class="item-label">手续费总额</div>
+                            <div class="item-value" id="totalFees">—</div>
+                        </div>
+                        <div class="result-item">
+                            <div class="item-label">涨跌百分比 <span class="info-tip" data-tooltip="相对买入价格的涨跌幅度">?</span></div>
+                            <div class="item-value" id="changePercent">—</div>
+                        </div>
+                        <div class="result-item">
+                            <div class="item-label">投资回报率 (ROI) <span class="info-tip" data-tooltip="净收益 ÷ 总成本（含买入费用），反映资金效率">?</span></div>
+                            <div class="item-value" id="roiValue">—</div>
+                        </div>
+                        <div class="result-item" id="breakevenItem" style="display:none;">
+                            <div class="item-label">盈亏平衡价</div>
+                            <div class="item-value" id="breakevenPrice">—</div>
+                        </div>
+                    </div>
+                    <button class="copy-btn" id="copyBtn" disabled>📋 复制卖出价到剪贴板</button>
+
+                    <button class="reverse-toggle" id="reverseToggle">🔄 反向：如果我在…卖出</button>
+                    <div class="reverse-panel" id="reversePanel">
+                        <div class="input-group">
+                            <label class="input-label" for="reversePrice">假设卖出价</label>
+                            <div class="input-wrapper">
+                                <input type="number" id="reversePrice" placeholder="输入假设卖出价" step="any" min="0.0001">
+                                <span class="input-suffix">元/股</span>
+                            </div>
+                        </div>
+                        <div id="reverseResult" style="font-size:0.8rem;color:var(--text-secondary);margin-top:8px;font-family:'JetBrains Mono',monospace;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card history-section" id="historyCard">
+            <div class="card-header"><span class="dot"></span>交易历史记录</div>
+            <div class="history-list" id="historyList">
+                <div style="text-align:center;color:var(--text-tertiary);padding:20px;font-size:0.8rem;">暂无历史记录</div>
+            </div>
+            <button class="clear-history-btn" id="clearHistoryBtn" style="display:none;">🗑 清空历史</button>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="settingsModal" style="display:none;">
+        <div class="modal">
+            <h3>⚙️ 自定义预设百分比</h3>
+            <div class="preset-tags" id="settingsPresetTags" style="margin-bottom:12px;"></div>
+            <div style="display:flex;gap:8px;">
+                <input type="number" id="newPresetInput" placeholder="输入新预设值（如+8或-5）" step="any" style="flex:1;padding:8px 12px;border-radius:8px;border:1.5px solid var(--border);background:var(--surface);color:var(--text-primary);font-family:'JetBrains Mono',monospace;font-size:0.8rem;">
+                <button class="btn btn-primary" id="addPresetBtn">添加</button>
+            </div>
+            <p style="font-size:0.7rem;color:var(--text-tertiary);margin-top:6px;">点击现有预设可删除。正数=盈利预设，负数=亏损预设。</p>
+            <div class="modal-actions">
+                <button class="btn btn-secondary" id="resetPresetsBtn">恢复默认</button>
+                <button class="btn btn-primary" id="closeSettingsBtn">完成</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="confirmModal" style="display:none;">
+        <div class="modal" style="max-width:360px;text-align:center;">
+            <h3>确认清空历史？</h3>
+            <p style="font-size:0.8rem;color:var(--text-secondary);">此操作不可恢复，将删除所有历史记录。</p>
+            <div class="modal-actions" style="justify-content:center;">
+                <button class="btn btn-secondary" id="cancelClearBtn">取消</button>
+                <button class="btn btn-danger" id="confirmClearBtn">确认清空</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            const $ = (sel) => document.querySelector(sel);
+            const $$ = (sel) => document.querySelectorAll(sel);
+
+            const buyPriceInput = $('#buyPrice');
+            const quantityInput = $('#quantity');
+            const marketSelect = $('#marketSelect');
+            const feeToggle = $('#feeToggle');
+            const feeAmountInput = $('#feeAmount');
+            const feeInputGroup = $('#feeInputGroup');
+            const feeIncludedToggle = $('#feeIncludedToggle');
+            const feeIncludedGroup = $('#feeIncludedGroup');
+            const totalInvestmentValue = $('#totalInvestmentValue');
+            const calculateBtn = $('#calculateBtn');
+            const calcHint = $('#calcHint');
+            const resultCard = $('#resultCard');
+            const resultPrice = $('#resultPrice');
+            const resultLabel = $('#resultLabel');
+            const perSharePL = $('#perSharePL');
+            const totalPL = $('#totalPL');
+            const totalInvestmentResult = $('#totalInvestmentResult');
+            const totalSellAmount = $('#totalSellAmount');
+            const totalFees = $('#totalFees');
+            const feeItem = $('#feeItem');
+            const changePercent = $('#changePercent');
+            const roiValue = $('#roiValue');
+            const breakevenPrice = $('#breakevenPrice');
+            const breakevenItem = $('#breakevenItem');
+            const copyBtn = $('#copyBtn');
+            const reverseToggle = $('#reverseToggle');
+            const reversePanel = $('#reversePanel');
+            const reversePriceInput = $('#reversePrice');
+            const reverseResult = $('#reverseResult');
+            const historyList = $('#historyList');
+            const clearHistoryBtn = $('#clearHistoryBtn');
+            const customPercentInput = $('#customPercent');
+            const targetAmountInput = $('#targetAmount');
+            const modePercent = $('#modePercent');
+            const modeAmount = $('#modeAmount');
+            const profitPresetsContainer = $('#profitPresets');
+            const lossPresetsContainer = $('#lossPresets');
+            const settingsModal = $('#settingsModal');
+            const settingsPresetTags = $('#settingsPresetTags');
+            const newPresetInput = $('#newPresetInput');
+            const themeToggle = $('#themeToggle');
+            const themeIcon = $('#themeIcon');
+            const aShareError = $('#aShareError');
+            const buyPriceError = $('#buyPriceError');
+            const quantityError = $('#quantityError');
+            const batchTbody = $('#batchTbody');
+            const avgPriceDisplay = $('#avgPriceDisplay');
+            const totalQtyDisplay = $('#totalQtyDisplay');
+            const commissionRateInput = $('#commissionRate');
+            const minCommissionInput = $('#minCommission');
+            const stampTaxInput = $('#stampTax');
+
+            let currentMode = 'percent';
+            let selectedPercent = null;
+            let currentResult = null;
+            let profitPresetsArr = [2, 3, 5, 7, 8, 10, 15, 20, 25, 30, 50, 100];
+            let lossPresetsArr = [-2, -3, -5, -7, -8, -10, -12, -15, -20, -25, -30, -50];
+            let batchIdCounter = 1;
+
+            function loadFromStorage() {
+                try {
+                    const savedProfit = localStorage.getItem('tcalc_profitPresets');
+                    const savedLoss = localStorage.getItem('tcalc_lossPresets');
+                    const savedTheme = localStorage.getItem('tcalc_theme');
+                    const savedHistory = localStorage.getItem('tcalc_history');
+                    const savedFeeIncluded = localStorage.getItem('tcalc_feeIncluded');
+                    if (savedProfit) profitPresetsArr = JSON.parse(savedProfit);
+                    if (savedLoss) lossPresetsArr = JSON.parse(savedLoss);
+                    if (savedTheme === 'dark') {
+                        document.body.setAttribute('data-theme', 'dark');
+                        themeIcon.textContent = '☀️';
+                    }
+                    if (savedFeeIncluded !== null && feeIncludedToggle) {
+                        feeIncludedToggle.checked = savedFeeIncluded === 'true';
+                    }
+                    if (savedHistory) return JSON.parse(savedHistory);
+                } catch (e) {}
+                return [];
+            }
+            let historyRecords = loadFromStorage();
+
+            function saveToStorage() {
+                try {
+                    localStorage.setItem('tcalc_profitPresets', JSON.stringify(profitPresetsArr));
+                    localStorage.setItem('tcalc_lossPresets', JSON.stringify(lossPresetsArr));
+                    localStorage.setItem('tcalc_theme', document.body.getAttribute('data-theme') || 'light');
+                    localStorage.setItem('tcalc_history', JSON.stringify(historyRecords));
+                    if (feeIncludedToggle) {
+                        localStorage.setItem('tcalc_feeIncluded', feeIncludedToggle.checked);
+                    }
+                } catch (e) {}
+            }
+
+            themeToggle.addEventListener('click', () => {
+                const current = document.body.getAttribute('data-theme');
+                const next = current === 'dark' ? 'light' : 'dark';
+                document.body.setAttribute('data-theme', next);
+                themeIcon.textContent = next === 'dark' ? '☀️' : '🌙';
+                saveToStorage();
+            });
+
+            function renderPresets() {
+                profitPresetsContainer.innerHTML = profitPresetsArr.map(p =>
+                    `<span class="preset-tag profit-tag" data-value="${p}">+${p}%</span>`).join('');
+                lossPresetsContainer.innerHTML = lossPresetsArr.map(p =>
+                    `<span class="preset-tag loss-tag" data-value="${p}">${p}%</span>`).join('');
+                bindPresetEvents();
+            }
+
+            function bindPresetEvents() {
+                $$('.preset-tag').forEach(tag => {
+                    tag.addEventListener('click', function(e) {
+                        const val = parseFloat(this.dataset.value);
+                        selectedPercent = val;
+                        customPercentInput.value = val;
+                        $$('.preset-tag').forEach(t => t.classList.remove('selected'));
+                        this.classList.add('selected');
+                        const ripple = document.createElement('span');
+                        ripple.className = 'ripple';
+                        const rect = this.getBoundingClientRect();
+                        const size = Math.max(rect.width, rect.height);
+                        ripple.style.width = ripple.style.height = size + 'px';
+                        ripple.style.left = (e.clientX - rect.left - size / 2) + 'px';
+                        ripple.style.top = (e.clientY - rect.top - size / 2) + 'px';
+                        this.appendChild(ripple);
+                        setTimeout(() => ripple.remove(), 600);
+                        triggerCalculate();
+                    });
+                });
+            }
+
+            function renderSettingsPresets() {
+                const all = [...profitPresetsArr.map(p => ({ v: p, t: 'profit' })), ...lossPresetsArr.map(p => ({
+                    v: p,
+                    t: 'loss'
+                }))];
+                settingsPresetTags.innerHTML = all.map(item =>
+                    `<span class="preset-tag ${item.t==='profit'?'profit-tag':'loss-tag'}" data-value="${item.v}" data-type="${item.t}" style="cursor:pointer;">${item.v>0?'+':''}${item.v}% <small style="opacity:0.6;">×</small></span>`
+                    ).join('');
+                settingsPresetTags.querySelectorAll('.preset-tag').forEach(tag => {
+                    tag.addEventListener('click', () => {
+                        const val = parseFloat(tag.dataset.value);
+                        const type = tag.dataset.type;
+                        if (type === 'profit') profitPresetsArr = profitPresetsArr.filter(v => v !==
+                            val);
+                        else lossPresetsArr = lossPresetsArr.filter(v => v !== val);
+                        renderPresets();
+                        renderSettingsPresets();
+                        saveToStorage();
+                    });
+                });
+            }
+
+            $('#settingsBtn').addEventListener('click', () => { renderSettingsPresets();
+                settingsModal.style.display = 'flex';
+                newPresetInput.value = ''; });
+            $('#closeSettingsBtn').addEventListener('click', () => { settingsModal.style.display = 'none';
+                renderPresets();
+                saveToStorage(); });
+            $('#addPresetBtn').addEventListener('click', () => {
+                const val = parseFloat(newPresetInput.value);
+                if (isNaN(val) || val === 0) { showToast('请输入有效的非零数值'); return; }
+                if (val > 0) { if (!profitPresetsArr.includes(val)) profitPresetsArr.push(val);
+                    profitPresetsArr.sort((a, b) => a - b); } else { if (!lossPresetsArr.includes(val))
+                    lossPresetsArr.push(val);
+                    lossPresetsArr.sort((a, b) => a - b); }
+                renderSettingsPresets();
+                saveToStorage();
+                newPresetInput.value = '';
+            });
+            $('#resetPresetsBtn').addEventListener('click', () => {
+                profitPresetsArr = [2, 3, 5, 7, 8, 10, 15, 20, 25, 30, 50, 100];
+                lossPresetsArr = [-2, -3, -5, -7, -8, -10, -12, -15, -20, -25, -30, -50];
+                renderSettingsPresets();
+                renderPresets();
+                saveToStorage();
+                showToast('已恢复默认预设');
+            });
+            settingsModal.addEventListener('click', function(e) { if (e.target === settingsModal) settingsModal.style
+                    .display = 'none'; });
+
+            // 手续费开关联动
+            feeToggle.addEventListener('change', () => {
+                feeInputGroup.style.display = feeToggle.checked ? 'block' : 'none';
+                if (feeToggle.checked) {
+                    feeIncludedGroup.classList.remove('hidden');
+                } else {
+                    feeIncludedGroup.classList.add('hidden');
+                }
+                updateTotalInvestment();
+                triggerCalculate();
+                saveToStorage();
+            });
+            feeIncludedToggle.addEventListener('change', () => {
+                triggerCalculate();
+                saveToStorage();
+            });
+
+            marketSelect.addEventListener('change', () => {
+                if (marketSelect.value === 'a') {
+                    quantityInput.step = '100';
+                    quantityInput.setAttribute('data-market', 'a');
+                    const qty = parseFloat(quantityInput.value);
+                    if (!isNaN(qty) && qty > 0 && qty % 100 !== 0) {
+                        const corrected = Math.round(qty / 100) * 100;
+                        quantityInput.value = corrected < 100 ? 100 : (corrected > 10000000 ? 10000000 :
+                            corrected);
+                        aShareError.classList.add('visible');
+                        setTimeout(() => aShareError.classList.remove('visible'), 2500);
+                    }
+                } else {
+                    quantityInput.step = 'any';
+                    quantityInput.setAttribute('data-market', 'us');
+                }
+                updateTotalInvestment();
+                triggerCalculate();
+            });
+
+            quantityInput.addEventListener('change', () => {
+                if (marketSelect.value === 'a') {
+                    const qty = parseFloat(quantityInput.value);
+                    if (!isNaN(qty) && qty > 0 && qty % 100 !== 0) {
+                        const corrected = Math.round(qty / 100) * 100;
+                        quantityInput.value = corrected < 100 ? 100 : (corrected > 10000000 ? 10000000 :
+                            corrected);
+                        aShareError.classList.add('visible');
+                        setTimeout(() => aShareError.classList.remove('visible'), 2500);
+                    }
+                }
+                updateTotalInvestment();
+                triggerCalculate();
+            });
+
+            $$('.mode-tab').forEach(tab => {
+                tab.addEventListener('click', () => {
+                    $$('.mode-tab').forEach(t => t.classList.remove('active'));
+                    tab.classList.add('active');
+                    currentMode = tab.dataset.mode;
+                    modePercent.style.display = currentMode === 'percent' ? 'block' : 'none';
+                    modeAmount.style.display = currentMode === 'amount' ? 'block' : 'none';
+                    selectedPercent = null;
+                    $$('.preset-tag').forEach(t => t.classList.remove('selected'));
+                    customPercentInput.value = '';
+                    targetAmountInput.value = '';
+                    triggerCalculate();
+                });
+            });
+
+            function validateInputs(showErrors = true) {
+                let valid = true;
+                const buyPrice = parseFloat(buyPriceInput.value);
+                const quantity = parseFloat(quantityInput.value);
+                if (isNaN(buyPrice) || buyPrice <= 0) { if (showErrors) { buyPriceInput.classList.add('error');
+                        buyPriceError.classList.add('visible'); } valid = false; } else { buyPriceInput.classList.remove(
+                        'error');
+                    buyPriceError.classList.remove('visible'); }
+                if (isNaN(quantity) || quantity <= 0) { if (showErrors) { quantityInput.classList.add('error');
+                        quantityError.classList.add('visible'); } valid = false; } else if (quantity > 10000000) { if (
+                        showErrors) { quantityInput.classList.add('error');
+                        quantityError.textContent = '数量不能超过一千万';
+                        quantityError.classList.add('visible'); } valid = false; } else if (marketSelect.value === 'a' &&
+                    quantity % 100 !== 0) { if (showErrors) { quantityInput.classList.add('error');
+                        quantityError.textContent = 'A股数量需为100的整数倍';
+                        quantityError.classList.add('visible'); } valid = false; } else { quantityInput.classList.remove(
+                        'error');
+                    quantityError.classList.remove('visible');
+                    quantityError.textContent = '请输入正数数量'; }
+                return valid;
+            }
+
+            function updateTotalInvestment() {
+                const buyPrice = parseFloat(buyPriceInput.value);
+                const quantity = parseFloat(quantityInput.value);
+                if (!isNaN(buyPrice) && buyPrice > 0 && !isNaN(quantity) && quantity > 0) {
+                    const total = buyPrice * quantity;
+                    totalInvestmentValue.textContent = '¥' + total.toLocaleString('zh-CN', { minimumFractionDigits: 2,
+                        maximumFractionDigits: 2 });
+                    calculateBtn.disabled = false;
+                    calcHint.textContent = '';
+                } else {
+                    totalInvestmentValue.textContent = '¥0.00';
+                    calculateBtn.disabled = true;
+                    calcHint.textContent = '请先输入买入价格和数量';
+                }
+                updateBatchSummary();
+            }
+
+            buyPriceInput.addEventListener('input', () => { updateTotalInvestment(); if (buyPriceInput.classList.contains(
+                    'error') && parseFloat(buyPriceInput.value) > 0) { buyPriceInput.classList.remove('error');
+                    buyPriceError.classList.remove('visible'); } });
+            quantityInput.addEventListener('input', () => { updateTotalInvestment(); if (quantityInput.classList.contains(
+                    'error') && parseFloat(quantityInput.value) > 0) { quantityInput.classList.remove('error');
+                    quantityError.classList.remove('visible'); } });
+            customPercentInput.addEventListener('input', () => { selectedPercent = null; $$('.preset-tag').forEach(t => t
+                    .classList.remove('selected'));
+                triggerCalculate(); });
+            targetAmountInput.addEventListener('input', triggerCalculate);
+            feeAmountInput.addEventListener('input', () => { updateTotalInvestment();
+                triggerCalculate(); });
+            commissionRateInput.addEventListener('input', triggerCalculate);
+            minCommissionInput.addEventListener('input', triggerCalculate);
+            stampTaxInput.addEventListener('input', triggerCalculate);
+            reversePriceInput.addEventListener('input', updateReverseCalc);
+
+            $('#advancedFeesHeader').addEventListener('click', function() { this.classList.toggle('open'); $(
+                '#advancedFeesBody').classList.toggle('open'); });
+            $('#batchHeader').addEventListener('click', function() { this.classList.toggle('open'); $('#batchBody')
+                .classList.toggle('open'); });
+
+            function updateBatchSummary() {
+                const prices = batchTbody.querySelectorAll('.batch-price');
+                const qtys = batchTbody.querySelectorAll('.batch-qty');
+                const amounts = batchTbody.querySelectorAll('.batch-amount');
+                let totalCost = 0,
+                    totalQty = 0,
+                    allFilled = true;
+                prices.forEach((pInput, i) => {
+                    const p = parseFloat(pInput.value),
+                        q = parseFloat(qtys[i].value);
+                    if (!isNaN(p) && p > 0 && !isNaN(q) && q > 0) { const amt = p * q;
+                        totalCost += amt;
+                        totalQty += q;
+                        amounts[i].textContent = '¥' + amt.toFixed(2); } else { amounts[i].textContent = '—';
+                        allFilled = false; }
+                });
+                if (totalQty > 0 && allFilled) { avgPriceDisplay.textContent = '¥' + (totalCost / totalQty).toFixed(4);
+                    totalQtyDisplay.textContent = totalQty.toFixed(4) + ' 股'; } else { avgPriceDisplay.textContent = '—';
+                    totalQtyDisplay.textContent = '—'; }
+            }
+
+            batchTbody.addEventListener('input', updateBatchSummary);
+            $('#addBatchBtn').addEventListener('click', () => {
+                batchIdCounter++;
+                const row = document.createElement('tr');
+                row.innerHTML =
+                    `<td>${batchIdCounter}</td><td><input type="number" step="any" min="0.0001" class="batch-price" style="width:80px;padding:4px;border-radius:4px;border:1px solid var(--border);background:var(--surface);color:var(--text-primary);font-family:'JetBrains Mono',monospace;font-size:0.75rem;text-align:center;" value=""></td><td><input type="number" step="any" min="0.0001" class="batch-qty" style="width:70px;padding:4px;border-radius:4px;border:1px solid var(--border);background:var(--surface);color:var(--text-primary);font-family:'JetBrains Mono',monospace;font-size:0.75rem;text-align:center;" value=""></td><td class="batch-amount" style="font-family:'JetBrains Mono',monospace;font-size:0.75rem;">—</td><td><button class="del-batch" title="删除">×</button></td>`;
+                batchTbody.appendChild(row);
+                row.querySelector('.del-batch').addEventListener('click', () => { row.remove();
+                    updateBatchSummary();
+                    renumberBatches(); });
+                row.querySelector('.batch-price').addEventListener('input', updateBatchSummary);
+                row.querySelector('.batch-qty').addEventListener('input', updateBatchSummary);
+                updateBatchSummary();
+            });
+            batchTbody.addEventListener('click', (e) => {
+                if (e.target.classList.contains('del-batch')) {
+                    const row = e.target.closest('tr');
+                    if (batchTbody.children.length > 1) { row.remove();
+                        updateBatchSummary();
+                        renumberBatches(); } else { row.querySelectorAll('input').forEach(inp => inp.value =
+                            '');
+                        row.querySelector('.batch-amount').textContent = '—';
+                        updateBatchSummary(); }
+                }
+            });
+
+            function renumberBatches() { const rows = batchTbody.querySelectorAll('tr');
+                rows.forEach((r, i) => r.querySelector('td').textContent = i + 1);
+                batchIdCounter = rows.length; }
+
+            $('#syncBatchBtn').addEventListener('click', () => {
+                const avgText = avgPriceDisplay.textContent,
+                    totalQtyText = totalQtyDisplay.textContent;
+                if (avgText !== '—' && totalQtyText !== '—') {
+                    const avgPrice = parseFloat(avgText.replace('¥', '')),
+                        totalQtyNum = parseFloat(totalQtyText);
+                    if (!isNaN(avgPrice) && !isNaN(totalQtyNum)) {
+                        buyPriceInput.value = avgPrice.toFixed(4);
+                        quantityInput.value = totalQtyNum;
+                        if (marketSelect.value === 'a' && totalQtyNum % 100 !== 0) { const corrected = Math.round(
+                                totalQtyNum / 100) * 100;
+                            quantityInput.value = corrected > 0 ? corrected : 100; }
+                        updateTotalInvestment();
+                        triggerCalculate();
+                        showToast('已同步加权均价和总数量到主输入');
+                    }
+                }
+            });
+
+            function getFeeCost(side = 'buy', grossAmount = 0) {
+                let fee = 0;
+                if (!feeToggle.checked) return 0;
+                const fixedFee = parseFloat(feeAmountInput.value) || 0;
+                fee += fixedFee;
+                const commRate = parseFloat(commissionRateInput.value) || 0;
+                if (commRate > 0 && grossAmount > 0) { let comm = grossAmount * (commRate / 100); const minComm =
+                        parseFloat(minCommissionInput.value) || 0; if (minComm > 0 && comm < minComm) comm = minComm;
+                    fee += comm; }
+                if (side === 'sell') { const stampRate = parseFloat(stampTaxInput.value) || 0; if (stampRate > 0 &&
+                        grossAmount > 0) fee += grossAmount * (stampRate / 100); }
+                return fee;
+            }
+
+            function calculate() {
+                if (!validateInputs(true)) { clearResult(); return null; }
+                const buyPrice = parseFloat(buyPriceInput.value),
+                    quantity = parseFloat(quantityInput.value);
+                const totalInvestment = buyPrice * quantity;
+                const buyFee = getFeeCost('buy', totalInvestment);
+                const totalCost = totalInvestment + buyFee;
+
+                // 盈亏平衡价始终包含所有费用
+                let breakevenNoSellFee = totalCost / quantity;
+                let breakevenWithSellFee = breakevenNoSellFee;
+                for (let i = 0; i < 20; i++) { const sellGross = breakevenWithSellFee * quantity; const sellFee =
+                        getFeeCost('sell', sellGross);
+                    breakevenWithSellFee = (totalCost + sellFee) / quantity; }
+                const effectiveBreakeven = feeToggle.checked ? breakevenWithSellFee : breakevenNoSellFee;
+
+                // 判断手续费是否计入盈利目标
+                const useFeeInTarget = feeToggle.checked && feeIncludedToggle.checked;
+                const baseCostForTarget = useFeeInTarget ? totalCost : totalInvestment;
+
+                let targetSellPrice = null,
+                    targetPercent = null,
+                    targetAmount = null;
+                if (currentMode === 'percent') {
+                    const pctVal = parseFloat(customPercentInput.value);
+                    if (isNaN(pctVal)) { clearResult(); return null; }
+                    targetPercent = pctVal;
+                    if (useFeeInTarget) {
+                        // 含费模式：迭代计算以覆盖手续费
+                        const desiredNetProfit = totalCost * (targetPercent / 100);
+                        let sp = buyPrice * (1 + targetPercent / 100);
+                        for (let i = 0; i < 30; i++) {
+                            const sellGross = sp * quantity;
+                            const sellFee = getFeeCost('sell', sellGross);
+                            const netProceeds = sellGross - sellFee;
+                            const netProfit = netProceeds - totalCost;
+                            const achievedPct = (netProfit / totalCost) * 100;
+                            const error = targetPercent - achievedPct;
+                            if (Math.abs(error) < 0.0001) break;
+                            sp += (error / 100) * totalCost / quantity;
+                            if (sp <= 0) sp = 0.0001;
+                        }
+                        targetSellPrice = sp;
+                    } else {
+                        // 不含费模式：简单计算，不迭代替换费用
+                        targetSellPrice = buyPrice * (1 + targetPercent / 100);
+                    }
+                    targetAmount = (targetSellPrice - effectiveBreakeven) * quantity;
+                } else {
+                    const amtVal = parseFloat(targetAmountInput.value);
+                    if (isNaN(amtVal)) { clearResult(); return null; }
+                    targetAmount = amtVal;
+                    if (useFeeInTarget) {
+                        // 含费模式：迭代计算
+                        let sp = (totalCost + targetAmount) / quantity;
+                        for (let i = 0; i < 30; i++) {
+                            const sellGross = sp * quantity;
+                            const sellFee = getFeeCost('sell', sellGross);
+                            const netProceeds = sellGross - sellFee;
+                            const achieved = netProceeds - totalCost;
+                            const error = targetAmount - achieved;
+                            if (Math.abs(error) < 0.001) break;
+                            sp += error / quantity;
+                            if (sp <= 0) sp = 0.0001;
+                        }
+                        targetSellPrice = sp;
+                    } else {
+                        // 不含费模式：简单计算
+                        targetSellPrice = (totalInvestment + targetAmount) / quantity;
+                    }
+                    targetPercent = ((targetSellPrice - buyPrice) / buyPrice) * 100;
+                }
+                if (targetSellPrice <= 0) { clearResult();
+                    showToast('计算出的卖出价无效，请检查输入'); return null; }
+
+                // 四舍五入到4位小数
+                targetSellPrice = Math.round(targetSellPrice * 10000) / 10000;
+                const sellGrossFinal = targetSellPrice * quantity;
+                const sellFeeFinal = getFeeCost('sell', sellGrossFinal);
+                const netProceedsFinal = sellGrossFinal - sellFeeFinal;
+                const perSharePLVal = targetSellPrice - effectiveBreakeven;
+                const totalPLVal = perSharePLVal * quantity;
+                const changePct = ((targetSellPrice - buyPrice) / buyPrice) * 100;
+                const roi = ((netProceedsFinal - totalCost) / totalCost) * 100;
+                const totalFeesAmount = buyFee + sellFeeFinal;
+
+                return {
+                    buyPrice,
+                    quantity,
+                    totalInvestment,
+                    totalCost,
+                    buyFee,
+                    targetSellPrice,
+                    perSharePL: perSharePLVal,
+                    totalPL: totalPLVal,
+                    changePercent: changePct,
+                    roi,
+                    breakeven: effectiveBreakeven,
+                    targetPercent,
+                    targetAmount,
+                    mode: currentMode,
+                    feeEnabled: feeToggle.checked,
+                    feeIncludedInTarget: useFeeInTarget,
+                    sellGross: sellGrossFinal,
+                    sellFee: sellFeeFinal,
+                    totalFees: totalFeesAmount
+                };
+            }
+
+            function displayResult(result) {
+                if (!result) { clearResult(); return; }
+                currentResult = result;
+                resultCard.classList.add('has-result');
+                resultCard.classList.remove('profit-glow', 'loss-glow');
+
+                resultPrice.textContent = '¥' + result.targetSellPrice.toFixed(4);
+
+                // 动态更新标签
+                if (result.feeEnabled && !result.feeIncludedInTarget) {
+                    resultLabel.innerHTML = '目标卖出价 <span class="result-badge">理论值</span>';
+                } else if (result.feeEnabled && result.feeIncludedInTarget) {
+                    resultLabel.innerHTML = '目标卖出价 <span class="result-badge">含费调整</span>';
+                } else {
+                    resultLabel.textContent = '目标卖出价';
+                }
+
+                if (result.totalPL > 0.005) { resultPrice.className = 'result-price profit';
+                    resultCard.classList.add('profit-glow'); } else if (result.totalPL < -0.005) { resultPrice.className =
+                        'result-price loss';
+                    resultCard.classList.add('loss-glow'); } else { resultPrice.className = 'result-price neutral'; }
+
+                perSharePL.textContent = '¥' + result.perSharePL.toFixed(4);
+                perSharePL.className = 'item-value ' + (result.perSharePL > 0.001 ? 'profit' : result.perSharePL < -0.001 ?
+                    'loss' : '');
+                totalPL.textContent = '¥' + result.totalPL.toFixed(2);
+                totalPL.className = 'item-value ' + (result.totalPL > 0.005 ? 'profit' : result.totalPL < -0.005 ? 'loss' :
+                    '');
+                totalInvestmentResult.textContent = '¥' + result.totalInvestment.toFixed(2);
+                totalSellAmount.textContent = '¥' + result.sellGross.toFixed(2);
+                changePercent.textContent = (result.changePercent >= 0 ? '+' : '') + result.changePercent.toFixed(2) + '%';
+                changePercent.className = 'item-value ' + (result.changePercent > 0.001 ? 'profit' : result.changePercent <
+                    -0.001 ? 'loss' : '');
+                roiValue.textContent = (result.roi >= 0 ? '+' : '') + result.roi.toFixed(2) + '%';
+                roiValue.className = 'item-value ' + (result.roi > 0.001 ? 'profit' : result.roi < -0.001 ? 'loss' : '');
+
+                if (result.feeEnabled) {
+                    feeItem.style.display = '';
+                    totalFees.textContent = '¥' + result.totalFees.toFixed(2);
+                    breakevenItem.style.display = '';
+                    breakevenPrice.textContent = '¥' + result.breakeven.toFixed(4);
+                } else {
+                    feeItem.style.display = 'none';
+                    breakevenItem.style.display = 'none';
+                }
+
+                copyBtn.disabled = false;
+                copyBtn.textContent = '📋 复制卖出价到剪贴板';
+                copyBtn.classList.remove('copied');
+                if (reversePanel.classList.contains('open')) { reversePriceInput.value = '';
+                    reverseResult.textContent = ''; }
+                saveToHistory(result);
+            }
+
+            function clearResult() {
+                currentResult = null;
+                resultCard.classList.remove('has-result', 'profit-glow', 'loss-glow');
+                resultPrice.textContent = '—';
+                resultPrice.className = 'result-price neutral';
+                resultLabel.textContent = '目标卖出价';
+                perSharePL.textContent = '—';
+                perSharePL.className = 'item-value';
+                totalPL.textContent = '—';
+                totalPL.className = 'item-value';
+                totalInvestmentResult.textContent = '—';
+                totalSellAmount.textContent = '—';
+                totalFees.textContent = '—';
+                changePercent.textContent = '—';
+                changePercent.className = 'item-value';
+                roiValue.textContent = '—';
+                roiValue.className = 'item-value';
+                feeItem.style.display = 'none';
+                breakevenItem.style.display = 'none';
+                copyBtn.disabled = true;
+                copyBtn.textContent = '📋 复制卖出价到剪贴板';
+                copyBtn.classList.remove('copied');
+            }
+
+            function triggerCalculate() { const result = calculate(); if (result) displayResult(result);
+                else if (!validateInputs(false)) clearResult();
+                updateReverseCalc(); }
+            calculateBtn.addEventListener('click', () => { validateInputs(true); const result = calculate(); if (result)
+                    displayResult(result); });
+
+            copyBtn.addEventListener('click', () => {
+                if (!currentResult) return;
+                const text = currentResult.targetSellPrice.toFixed(4);
+                navigator.clipboard.writeText(text).then(() => {
+                    copyBtn.textContent = '✅ 已复制！';
+                    copyBtn.classList.add('copied');
+                    showToast('卖出价 ¥' + text + ' 已复制到剪贴板');
+                    setTimeout(() => { copyBtn.textContent = '📋 复制卖出价到剪贴板';
+                        copyBtn.classList.remove('copied'); }, 2000);
+                }).catch(() => showToast('复制失败，请手动选择文字'));
+            });
+
+            reverseToggle.addEventListener('click', () => {
+                reversePanel.classList.toggle('open');
+                reverseToggle.textContent = reversePanel.classList.contains('open') ? '🔄 收起反向计算' :
+                    '🔄 反向：如果我在…卖出';
+                if (reversePanel.classList.contains('open') && currentResult) { reversePriceInput.value = '';
+                    reverseResult.textContent = ''; }
+            });
+
+            function updateReverseCalc() {
+                if (!reversePanel.classList.contains('open')) return;
+                const rp = parseFloat(reversePriceInput.value),
+                    buyPrice = parseFloat(buyPriceInput.value),
+                    quantity = parseFloat(quantityInput.value);
+                if (isNaN(rp) || rp <= 0 || isNaN(buyPrice) || buyPrice <= 0 || isNaN(quantity) || quantity <= 0) {
+                    reverseResult.textContent = '请输入有效的假设卖出价'; return; }
+                const totalInvestment = buyPrice * quantity;
+                const buyFee = getFeeCost('buy', totalInvestment);
+                const totalCost = totalInvestment + buyFee;
+                const sellGross = rp * quantity;
+                const sellFee = getFeeCost('sell', sellGross);
+                const netProceeds = sellGross - sellFee;
+                const netPL = netProceeds - totalCost;
+                const pctChange = ((rp - buyPrice) / buyPrice) * 100;
+                const roi = (netPL / totalCost) * 100;
+                const plColor = netPL > 0.005 ? 'color:var(--profit);' : netPL < -0.005 ? 'color:var(--loss);' :
+                    'color:var(--neutral);';
+                reverseResult.innerHTML =
+                    `净盈亏：<strong style="${plColor}">¥${netPL.toFixed(2)}</strong> &nbsp;|&nbsp; 涨跌：<strong>${(pctChange>=0?'+':'')+pctChange.toFixed(2)}%</strong> &nbsp;|&nbsp; ROI：<strong>${(roi>=0?'+':'')+roi.toFixed(2)}%</strong>${netPL>0.005?' ✅ 达到盈利':''}${netPL<-0.005?' ⚠️ 处于亏损':''}`;
+            }
+            reversePriceInput.addEventListener('input', updateReverseCalc);
+
+            function saveToHistory(result) {
+                const record = {
+                    id: Date.now(),
+                    date: new Date().toISOString(),
+                    buyPrice: result.buyPrice,
+                    quantity: result.quantity,
+                    sellPrice: result.targetSellPrice,
+                    totalPL: result.totalPL,
+                    mode: result.mode,
+                    feeEnabled: result.feeEnabled,
+                    feeIncludedInTarget: result.feeIncludedInTarget,
+                    changePercent: result.changePercent,
+                };
+                if (historyRecords.length > 0) {
+                    const last = historyRecords[0];
+                    if (Math.abs(last.buyPrice - record.buyPrice) < 0.0001 && Math.abs(last.quantity - record.quantity) <
+                        0.0001 && Math.abs(last.sellPrice - record.sellPrice) < 0.0001 && Date.now() - last.id <
+                        3000) return;
+                }
+                historyRecords.unshift(record);
+                if (historyRecords.length > 50) historyRecords = historyRecords.slice(0, 50);
+                saveToStorage();
+                renderHistory();
+            }
+
+            function renderHistory() {
+                if (historyRecords.length === 0) {
+                    historyList.innerHTML =
+                        '<div style="text-align:center;color:var(--text-tertiary);padding:20px;font-size:0.8rem;">暂无历史记录</div>';
+                    clearHistoryBtn.style.display = 'none';
+                } else {
+                    historyList.innerHTML = historyRecords.map(r => {
+                        const d = new Date(r.date);
+                        const dateStr = d.toLocaleDateString('zh-CN') + ' ' + d.toLocaleTimeString(
+                        'zh-CN', { hour: '2-digit', minute: '2-digit' });
+                        const plClass = r.totalPL > 0.005 ? 'profit' : r.totalPL < -0.005 ? 'loss' : '';
+                        const feeTag = r.feeEnabled ? (r.feeIncludedInTarget ? ' ·含费' : ' ·费不计') : '';
+                        return `<div class="history-item" data-id="${r.id}">
+                            <span class="hi-date">${dateStr}</span>
+                            <span class="hi-info">买入 ¥${r.buyPrice.toFixed(2)} × ${r.quantity.toFixed(2)} → 卖出 ¥${r.sellPrice.toFixed(4)}</span>
+                            <span class="hi-pl ${plClass}">${r.totalPL>=0?'+':''}¥${r.totalPL.toFixed(2)}</span>
+                            <span style="font-size:0.65rem;color:var(--text-tertiary);">${r.mode==='percent'?'按%':'按金额'}${feeTag}</span>
+                        </div>`;
+                    }).join('');
+                    clearHistoryBtn.style.display = 'inline-block';
+                    historyList.querySelectorAll('.history-item').forEach(item => {
+                        item.addEventListener('click', () => {
+                            const id = parseInt(item.dataset.id);
+                            const record = historyRecords.find(r => r.id === id);
+                            if (record) {
+                                buyPriceInput.value = record.buyPrice;
+                                quantityInput.value = record.quantity;
+                                feeToggle.checked = record.feeEnabled;
+                                feeInputGroup.style.display = record.feeEnabled ? 'block' : 'none';
+                                if (record.feeEnabled) {
+                                    feeIncludedGroup.classList.remove('hidden');
+                                    feeIncludedToggle.checked = record.feeIncludedInTarget !==
+                                        false;
+                                } else {
+                                    feeIncludedGroup.classList.add('hidden');
+                                }
+                                if (record.mode === 'percent') {
+                                    $$('.mode-tab').forEach(t => t.classList.remove('active'));
+                                    $$('.mode-tab')[0].classList.add('active');
+                                    currentMode = 'percent';
+                                    modePercent.style.display = 'block';
+                                    modeAmount.style.display = 'none';
+                                    customPercentInput.value = record.changePercent.toFixed(2);
+                                    targetAmountInput.value = '';
+                                } else {
+                                    $$('.mode-tab').forEach(t => t.classList.remove('active'));
+                                    $$('.mode-tab')[1].classList.add('active');
+                                    currentMode = 'amount';
+                                    modePercent.style.display = 'none';
+                                    modeAmount.style.display = 'block';
+                                    targetAmountInput.value = record.totalPL.toFixed(2);
+                                    customPercentInput.value = '';
+                                }
+                                selectedPercent = null;
+                                $$('.preset-tag').forEach(t => t.classList.remove('selected'));
+                                updateTotalInvestment();
+                                const result = calculate();
+                                if (result) displayResult(result);
+                                window.scrollTo({ top: resultCard.offsetTop - 80, behavior: 'smooth' });
+                            }
+                        });
+                    });
+                }
+            }
+
+            clearHistoryBtn.addEventListener('click', () => { $('#confirmModal').style.display = 'flex'; });
+            $('#cancelClearBtn').addEventListener('click', () => { $('#confirmModal').style.display = 'none'; });
+            $('#confirmClearBtn').addEventListener('click', () => { historyRecords = [];
+                saveToStorage();
+                renderHistory();
+                $('#confirmModal').style.display = 'none';
+                showToast('历史记录已清空'); });
+            $('#confirmModal').addEventListener('click', function(e) { if (e.target === $('#confirmModal')) $(
+                '#confirmModal').style.display = 'none'; });
+
+            function showToast(msg) {
+                const existing = document.querySelector('.toast');
+                if (existing) existing.remove();
+                const toast = document.createElement('div');
+                toast.className = 'toast';
+                toast.textContent = msg;
+                document.body.appendChild(toast);
+                setTimeout(() => toast.remove(), 2200);
+            }
+
+            function init() {
+                renderPresets();
+                renderHistory();
+                updateTotalInvestment();
+                clearResult();
+                // 初始化手续费子开关状态
+                if (feeToggle.checked) {
+                    feeInputGroup.style.display = 'block';
+                    feeIncludedGroup.classList.remove('hidden');
+                } else {
+                    feeInputGroup.style.display = 'none';
+                    feeIncludedGroup.classList.add('hidden');
+                }
+                const firstBatchPrice = batchTbody.querySelector('.batch-price');
+                const firstBatchQty = batchTbody.querySelector('.batch-qty');
+                if (firstBatchPrice) firstBatchPrice.addEventListener('input', updateBatchSummary);
+                if (firstBatchQty) firstBatchQty.addEventListener('input', updateBatchSummary);
+                updateBatchSummary();
+            }
+            init();
+        })();
+    </script>
+</body>
+</html>
