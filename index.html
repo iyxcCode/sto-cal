@@ -503,6 +503,31 @@
                 transform: scale(1);
             }
         }
+        .settings-tabs {
+            display: flex;
+            gap: 4px;
+            margin-bottom: 14px;
+            border-bottom: 1.5px solid var(--border);
+        }
+        .settings-tab {
+            flex: 1;
+            padding: 8px 12px;
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            border-bottom: 2px solid transparent;
+            transition: all var(--transition);
+        }
+        .settings-tab:hover {
+            color: var(--accent);
+        }
+        .settings-tab.active {
+            color: var(--accent);
+            border-bottom-color: var(--accent);
+        }
         .ripple {
             position: absolute;
             border-radius: 50%;
@@ -1070,7 +1095,7 @@
                 </div>
             </div>
             <div class="header-actions">
-                <button class="icon-btn" id="settingsBtn" aria-label="预设设置" title="自定义预设百分比">
+                <button class="icon-btn" id="settingsBtn" aria-label="预设设置" title="自定义预设百分比与金额">
                     ⚙️<span class="theme-dot"></span>
                 </button>
                 <button class="icon-btn" id="themeToggle" aria-label="切换深色/浅色主题" title="切换主题">
@@ -1196,8 +1221,16 @@
                     </div>
                 </div>
                 <div id="modeAmount" style="display:none;">
+                    <div class="preset-section">
+                        <div class="preset-label">📈 盈利预设</div>
+                        <div class="preset-tags" id="profitAmountPresets"></div>
+                    </div>
+                    <div class="preset-section">
+                        <div class="preset-label">📉 亏损预设</div>
+                        <div class="preset-tags" id="lossAmountPresets"></div>
+                    </div>
                     <div class="input-group">
-                        <label class="input-label" for="targetAmount">期望盈亏金额（正=盈利，负=亏损）</label>
+                        <label class="input-label" for="targetAmount">自定义目标金额（正=盈利，负=亏损）</label>
                         <div class="input-wrapper">
                             <input type="number" id="targetAmount" placeholder="例：500 或 -300" step="any" aria-label="目标盈亏金额">
                             <span class="input-suffix">元</span>
@@ -1277,13 +1310,26 @@
 
     <div class="modal-overlay" id="settingsModal" style="display:none;">
         <div class="modal">
-            <h3>⚙️ 自定义预设百分比</h3>
-            <div class="preset-tags" id="settingsPresetTags" style="margin-bottom:12px;"></div>
-            <div style="display:flex;gap:8px;">
-                <input type="number" id="newPresetInput" placeholder="输入新预设值（如+8或-5）" step="any" style="flex:1;padding:8px 12px;border-radius:8px;border:1.5px solid var(--border);background:var(--surface);color:var(--text-primary);font-family:'JetBrains Mono',monospace;font-size:0.8rem;">
-                <button class="btn btn-primary" id="addPresetBtn">添加</button>
+            <div class="settings-tabs">
+                <button class="settings-tab active" data-settings-tab="percent">📊 百分比预设</button>
+                <button class="settings-tab" data-settings-tab="amount">💰 金额预设</button>
             </div>
-            <p style="font-size:0.7rem;color:var(--text-tertiary);margin-top:6px;">点击现有预设可删除。正数=盈利预设，负数=亏损预设。</p>
+            <div id="settingsPercentPanel">
+                <div class="preset-tags" id="settingsPresetTags" style="margin-bottom:12px;"></div>
+                <div style="display:flex;gap:8px;">
+                    <input type="number" id="newPresetInput" placeholder="输入新预设值（如+8或-5）" step="any" style="flex:1;padding:8px 12px;border-radius:8px;border:1.5px solid var(--border);background:var(--surface);color:var(--text-primary);font-family:'JetBrains Mono',monospace;font-size:0.8rem;">
+                    <button class="btn btn-primary" id="addPresetBtn">添加</button>
+                </div>
+                <p style="font-size:0.7rem;color:var(--text-tertiary);margin-top:6px;">点击现有预设可删除。正数=盈利预设，负数=亏损预设。</p>
+            </div>
+            <div id="settingsAmountPanel" style="display:none;">
+                <div class="preset-tags" id="settingsAmountPresetTags" style="margin-bottom:12px;"></div>
+                <div style="display:flex;gap:8px;">
+                    <input type="number" id="newAmountPresetInput" placeholder="输入新预设金额（如+500或-300）" step="any" style="flex:1;padding:8px 12px;border-radius:8px;border:1.5px solid var(--border);background:var(--surface);color:var(--text-primary);font-family:'JetBrains Mono',monospace;font-size:0.8rem;">
+                    <button class="btn btn-primary" id="addAmountPresetBtn">添加</button>
+                </div>
+                <p style="font-size:0.7rem;color:var(--text-tertiary);margin-top:6px;">点击现有预设可删除。正数=盈利金额，负数=亏损金额。</p>
+            </div>
             <div class="modal-actions">
                 <button class="btn btn-secondary" id="resetPresetsBtn">恢复默认</button>
                 <button class="btn btn-primary" id="closeSettingsBtn">完成</button>
@@ -1358,23 +1404,36 @@
             const commissionRateInput = $('#commissionRate');
             const minCommissionInput = $('#minCommission');
             const stampTaxInput = $('#stampTax');
+            const profitAmountPresetsContainer = $('#profitAmountPresets');
+            const lossAmountPresetsContainer = $('#lossAmountPresets');
+            const settingsAmountPresetTags = $('#settingsAmountPresetTags');
+            const newAmountPresetInput = $('#newAmountPresetInput');
+            const settingsPercentPanel = $('#settingsPercentPanel');
+            const settingsAmountPanel = $('#settingsAmountPanel');
 
             let currentMode = 'percent';
             let selectedPercent = null;
+            let selectedAmount = null;
             let currentResult = null;
             let profitPresetsArr = [2, 3, 5, 7, 8, 10, 15, 20, 25, 30, 50, 100];
             let lossPresetsArr = [-2, -3, -5, -7, -8, -10, -12, -15, -20, -25, -30, -50];
+            let profitAmountPresetsArr = [50, 100, 200, 300, 500, 800, 1000, 1500, 2000, 3000, 5000, 10000];
+            let lossAmountPresetsArr = [-50, -100, -200, -300, -500, -800, -1000, -1500, -2000, -3000, -5000, -10000];
             let batchIdCounter = 1;
 
             function loadFromStorage() {
                 try {
                     const savedProfit = localStorage.getItem('tcalc_profitPresets');
                     const savedLoss = localStorage.getItem('tcalc_lossPresets');
+                    const savedProfitAmt = localStorage.getItem('tcalc_profitAmountPresets');
+                    const savedLossAmt = localStorage.getItem('tcalc_lossAmountPresets');
                     const savedTheme = localStorage.getItem('tcalc_theme');
                     const savedHistory = localStorage.getItem('tcalc_history');
                     const savedFeeIncluded = localStorage.getItem('tcalc_feeIncluded');
                     if (savedProfit) profitPresetsArr = JSON.parse(savedProfit);
                     if (savedLoss) lossPresetsArr = JSON.parse(savedLoss);
+                    if (savedProfitAmt) profitAmountPresetsArr = JSON.parse(savedProfitAmt);
+                    if (savedLossAmt) lossAmountPresetsArr = JSON.parse(savedLossAmt);
                     if (savedTheme === 'dark') {
                         document.body.setAttribute('data-theme', 'dark');
                         themeIcon.textContent = '☀️';
@@ -1392,6 +1451,8 @@
                 try {
                     localStorage.setItem('tcalc_profitPresets', JSON.stringify(profitPresetsArr));
                     localStorage.setItem('tcalc_lossPresets', JSON.stringify(lossPresetsArr));
+                    localStorage.setItem('tcalc_profitAmountPresets', JSON.stringify(profitAmountPresetsArr));
+                    localStorage.setItem('tcalc_lossAmountPresets', JSON.stringify(lossAmountPresetsArr));
                     localStorage.setItem('tcalc_theme', document.body.getAttribute('data-theme') || 'light');
                     localStorage.setItem('tcalc_history', JSON.stringify(historyRecords));
                     if (feeIncludedToggle) {
@@ -1417,12 +1478,89 @@
             }
 
             function bindPresetEvents() {
-                $$('.preset-tag').forEach(tag => {
+                profitPresetsContainer.querySelectorAll('.preset-tag').forEach(tag => {
                     tag.addEventListener('click', function(e) {
                         const val = parseFloat(this.dataset.value);
                         selectedPercent = val;
                         customPercentInput.value = val;
-                        $$('.preset-tag').forEach(t => t.classList.remove('selected'));
+                        profitPresetsContainer.querySelectorAll('.preset-tag').forEach(t => t.classList.remove('selected'));
+                        lossPresetsContainer.querySelectorAll('.preset-tag').forEach(t => t.classList.remove('selected'));
+                        this.classList.add('selected');
+                        const ripple = document.createElement('span');
+                        ripple.className = 'ripple';
+                        const rect = this.getBoundingClientRect();
+                        const size = Math.max(rect.width, rect.height);
+                        ripple.style.width = ripple.style.height = size + 'px';
+                        ripple.style.left = (e.clientX - rect.left - size / 2) + 'px';
+                        ripple.style.top = (e.clientY - rect.top - size / 2) + 'px';
+                        this.appendChild(ripple);
+                        setTimeout(() => ripple.remove(), 600);
+                        triggerCalculate();
+                    });
+                });
+                lossPresetsContainer.querySelectorAll('.preset-tag').forEach(tag => {
+                    tag.addEventListener('click', function(e) {
+                        const val = parseFloat(this.dataset.value);
+                        selectedPercent = val;
+                        customPercentInput.value = val;
+                        profitPresetsContainer.querySelectorAll('.preset-tag').forEach(t => t.classList.remove('selected'));
+                        lossPresetsContainer.querySelectorAll('.preset-tag').forEach(t => t.classList.remove('selected'));
+                        this.classList.add('selected');
+                        const ripple = document.createElement('span');
+                        ripple.className = 'ripple';
+                        const rect = this.getBoundingClientRect();
+                        const size = Math.max(rect.width, rect.height);
+                        ripple.style.width = ripple.style.height = size + 'px';
+                        ripple.style.left = (e.clientX - rect.left - size / 2) + 'px';
+                        ripple.style.top = (e.clientY - rect.top - size / 2) + 'px';
+                        this.appendChild(ripple);
+                        setTimeout(() => ripple.remove(), 600);
+                        triggerCalculate();
+                    });
+                });
+            }
+
+            function formatAmount(v) {
+                if (Math.abs(v) >= 10000) return (v / 10000) + '万';
+                return v > 0 ? '+' + v : String(v);
+            }
+
+            function renderAmountPresets() {
+                profitAmountPresetsContainer.innerHTML = profitAmountPresetsArr.map(p =>
+                    `<span class="preset-tag profit-tag" data-value="${p}">${p >= 10000 ? '+' + (p/10000) + '万' : '+' + p}</span>`).join('');
+                lossAmountPresetsContainer.innerHTML = lossAmountPresetsArr.map(p =>
+                    `<span class="preset-tag loss-tag" data-value="${p}">${p <= -10000 ? (p/10000) + '万' : p}</span>`).join('');
+                bindAmountPresetEvents();
+            }
+
+            function bindAmountPresetEvents() {
+                profitAmountPresetsContainer.querySelectorAll('.preset-tag').forEach(tag => {
+                    tag.addEventListener('click', function(e) {
+                        const val = parseFloat(this.dataset.value);
+                        selectedAmount = val;
+                        targetAmountInput.value = val;
+                        profitAmountPresetsContainer.querySelectorAll('.preset-tag').forEach(t => t.classList.remove('selected'));
+                        lossAmountPresetsContainer.querySelectorAll('.preset-tag').forEach(t => t.classList.remove('selected'));
+                        this.classList.add('selected');
+                        const ripple = document.createElement('span');
+                        ripple.className = 'ripple';
+                        const rect = this.getBoundingClientRect();
+                        const size = Math.max(rect.width, rect.height);
+                        ripple.style.width = ripple.style.height = size + 'px';
+                        ripple.style.left = (e.clientX - rect.left - size / 2) + 'px';
+                        ripple.style.top = (e.clientY - rect.top - size / 2) + 'px';
+                        this.appendChild(ripple);
+                        setTimeout(() => ripple.remove(), 600);
+                        triggerCalculate();
+                    });
+                });
+                lossAmountPresetsContainer.querySelectorAll('.preset-tag').forEach(tag => {
+                    tag.addEventListener('click', function(e) {
+                        const val = parseFloat(this.dataset.value);
+                        selectedAmount = val;
+                        targetAmountInput.value = val;
+                        profitAmountPresetsContainer.querySelectorAll('.preset-tag').forEach(t => t.classList.remove('selected'));
+                        lossAmountPresetsContainer.querySelectorAll('.preset-tag').forEach(t => t.classList.remove('selected'));
                         this.classList.add('selected');
                         const ripple = document.createElement('span');
                         ripple.className = 'ripple';
@@ -1460,11 +1598,47 @@
                 });
             }
 
-            $('#settingsBtn').addEventListener('click', () => { renderSettingsPresets();
+            function renderSettingsAmountPresets() {
+                const all = [...profitAmountPresetsArr.map(p => ({ v: p, t: 'profit' })), ...lossAmountPresetsArr.map(p => ({
+                    v: p,
+                    t: 'loss'
+                }))];
+                settingsAmountPresetTags.innerHTML = all.map(item =>
+                    `<span class="preset-tag ${item.t==='profit'?'profit-tag':'loss-tag'}" data-value="${item.v}" data-type="${item.t}" style="cursor:pointer;">${item.v>0?'+':''}${item.v >= 10000 || item.v <= -10000 ? (item.v/10000)+'万' : item.v}元 <small style="opacity:0.6;">×</small></span>`
+                    ).join('');
+                settingsAmountPresetTags.querySelectorAll('.preset-tag').forEach(tag => {
+                    tag.addEventListener('click', () => {
+                        const val = parseFloat(tag.dataset.value);
+                        const type = tag.dataset.type;
+                        if (type === 'profit') profitAmountPresetsArr = profitAmountPresetsArr.filter(v => v !== val);
+                        else lossAmountPresetsArr = lossAmountPresetsArr.filter(v => v !== val);
+                        renderAmountPresets();
+                        renderSettingsAmountPresets();
+                        saveToStorage();
+                    });
+                });
+            }
+
+            $$('.settings-tab').forEach(tab => {
+                tab.addEventListener('click', () => {
+                    $$('.settings-tab').forEach(t => t.classList.remove('active'));
+                    tab.classList.add('active');
+                    const panel = tab.dataset.settingsTab;
+                    settingsPercentPanel.style.display = panel === 'percent' ? 'block' : 'none';
+                    settingsAmountPanel.style.display = panel === 'amount' ? 'block' : 'none';
+                });
+            });
+
+            $('#settingsBtn').addEventListener('click', () => {
+                renderSettingsPresets();
+                renderSettingsAmountPresets();
                 settingsModal.style.display = 'flex';
-                newPresetInput.value = ''; });
+                newPresetInput.value = '';
+                newAmountPresetInput.value = '';
+            });
             $('#closeSettingsBtn').addEventListener('click', () => { settingsModal.style.display = 'none';
                 renderPresets();
+                renderAmountPresets();
                 saveToStorage(); });
             $('#addPresetBtn').addEventListener('click', () => {
                 const val = parseFloat(newPresetInput.value);
@@ -1477,11 +1651,30 @@
                 saveToStorage();
                 newPresetInput.value = '';
             });
+            $('#addAmountPresetBtn').addEventListener('click', () => {
+                const val = parseFloat(newAmountPresetInput.value);
+                if (isNaN(val) || val === 0) { showToast('请输入有效的非零数值'); return; }
+                if (val > 0) { if (!profitAmountPresetsArr.includes(val)) profitAmountPresetsArr.push(val);
+                    profitAmountPresetsArr.sort((a, b) => a - b); } else { if (!lossAmountPresetsArr.includes(val))
+                    lossAmountPresetsArr.push(val);
+                    lossAmountPresetsArr.sort((a, b) => a - b); }
+                renderSettingsAmountPresets();
+                saveToStorage();
+                newAmountPresetInput.value = '';
+            });
             $('#resetPresetsBtn').addEventListener('click', () => {
-                profitPresetsArr = [2, 3, 5, 7, 8, 10, 15, 20, 25, 30, 50, 100];
-                lossPresetsArr = [-2, -3, -5, -7, -8, -10, -12, -15, -20, -25, -30, -50];
-                renderSettingsPresets();
-                renderPresets();
+                const activeTab = document.querySelector('.settings-tab.active');
+                if (activeTab && activeTab.dataset.settingsTab === 'amount') {
+                    profitAmountPresetsArr = [50, 100, 200, 300, 500, 800, 1000, 1500, 2000, 3000, 5000, 10000];
+                    lossAmountPresetsArr = [-50, -100, -200, -300, -500, -800, -1000, -1500, -2000, -3000, -5000, -10000];
+                    renderSettingsAmountPresets();
+                    renderAmountPresets();
+                } else {
+                    profitPresetsArr = [2, 3, 5, 7, 8, 10, 15, 20, 25, 30, 50, 100];
+                    lossPresetsArr = [-2, -3, -5, -7, -8, -10, -12, -15, -20, -25, -30, -50];
+                    renderSettingsPresets();
+                    renderPresets();
+                }
                 saveToStorage();
                 showToast('已恢复默认预设');
             });
@@ -1548,7 +1741,11 @@
                     modePercent.style.display = currentMode === 'percent' ? 'block' : 'none';
                     modeAmount.style.display = currentMode === 'amount' ? 'block' : 'none';
                     selectedPercent = null;
-                    $$('.preset-tag').forEach(t => t.classList.remove('selected'));
+                    selectedAmount = null;
+                    profitPresetsContainer.querySelectorAll('.preset-tag').forEach(t => t.classList.remove('selected'));
+                    lossPresetsContainer.querySelectorAll('.preset-tag').forEach(t => t.classList.remove('selected'));
+                    profitAmountPresetsContainer.querySelectorAll('.preset-tag').forEach(t => t.classList.remove('selected'));
+                    lossAmountPresetsContainer.querySelectorAll('.preset-tag').forEach(t => t.classList.remove('selected'));
                     customPercentInput.value = '';
                     targetAmountInput.value = '';
                     triggerCalculate();
@@ -1600,10 +1797,14 @@
             quantityInput.addEventListener('input', () => { updateTotalInvestment(); if (quantityInput.classList.contains(
                     'error') && parseFloat(quantityInput.value) > 0) { quantityInput.classList.remove('error');
                     quantityError.classList.remove('visible'); } });
-            customPercentInput.addEventListener('input', () => { selectedPercent = null; $$('.preset-tag').forEach(t => t
-                    .classList.remove('selected'));
+            customPercentInput.addEventListener('input', () => { selectedPercent = null;
+                profitPresetsContainer.querySelectorAll('.preset-tag').forEach(t => t.classList.remove('selected'));
+                lossPresetsContainer.querySelectorAll('.preset-tag').forEach(t => t.classList.remove('selected'));
                 triggerCalculate(); });
-            targetAmountInput.addEventListener('input', triggerCalculate);
+            targetAmountInput.addEventListener('input', () => { selectedAmount = null;
+                profitAmountPresetsContainer.querySelectorAll('.preset-tag').forEach(t => t.classList.remove('selected'));
+                lossAmountPresetsContainer.querySelectorAll('.preset-tag').forEach(t => t.classList.remove('selected'));
+                triggerCalculate(); });
             feeAmountInput.addEventListener('input', () => { updateTotalInvestment();
                 triggerCalculate(); });
             commissionRateInput.addEventListener('input', triggerCalculate);
@@ -2015,7 +2216,11 @@
                                     customPercentInput.value = '';
                                 }
                                 selectedPercent = null;
-                                $$('.preset-tag').forEach(t => t.classList.remove('selected'));
+                                selectedAmount = null;
+                                profitPresetsContainer.querySelectorAll('.preset-tag').forEach(t => t.classList.remove('selected'));
+                                lossPresetsContainer.querySelectorAll('.preset-tag').forEach(t => t.classList.remove('selected'));
+                                profitAmountPresetsContainer.querySelectorAll('.preset-tag').forEach(t => t.classList.remove('selected'));
+                                lossAmountPresetsContainer.querySelectorAll('.preset-tag').forEach(t => t.classList.remove('selected'));
                                 updateTotalInvestment();
                                 const result = calculate();
                                 if (result) displayResult(result);
@@ -2048,6 +2253,7 @@
 
             function init() {
                 renderPresets();
+                renderAmountPresets();
                 renderHistory();
                 updateTotalInvestment();
                 clearResult();
