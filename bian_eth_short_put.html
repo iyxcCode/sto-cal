@@ -1,0 +1,736 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>币安 ETH 卖出看跌期权（Short Put）计算器 & 指南</title>
+  <style>
+    :root {
+      --primary: #f0b90b;
+      --bg: #0b0e11;
+      --card: #1e2329;
+      --text: #eaecef;
+      --muted: #848e9c;
+      --green: #0ecb81;
+      --red: #f6465d;
+      --border: #2b3139;
+      --input-bg: #0b0e11;
+      --formula-bg: #0b0e11;
+      --result-bg: #0b0e11;
+      --note-bg: rgba(240, 185, 11, 0.08);
+      --note-border: rgba(240, 185, 11, 0.3);
+      --note-text: #f0d78c;
+      --th-bg: #0b0e11;
+    }
+    [data-theme="light"] {
+      --primary: #c99400;
+      --bg: #f5f5f5;
+      --card: #ffffff;
+      --text: #1e2329;
+      --muted: #707a8a;
+      --green: #0ecb81;
+      --red: #f6465d;
+      --border: #e0e3e7;
+      --input-bg: #ffffff;
+      --formula-bg: #f8f9fa;
+      --result-bg: #f8f9fa;
+      --note-bg: rgba(240, 185, 11, 0.12);
+      --note-border: rgba(240, 185, 11, 0.4);
+      --note-text: #8a6d00;
+      --th-bg: #f8f9fa;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      padding: 20px;
+      transition: background 0.3s, color 0.3s;
+    }
+    .container { max-width: 900px; margin: 0 auto; }
+    .theme-toggle {
+      position: fixed;
+      top: 16px;
+      right: 16px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 8px 14px;
+      cursor: pointer;
+      font-size: 0.85rem;
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      z-index: 100;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    .theme-toggle:hover { border-color: var(--primary); }
+    h1 {
+      text-align: center;
+      color: var(--primary);
+      margin-bottom: 8px;
+      font-size: 1.8rem;
+    }
+    .subtitle {
+      text-align: center;
+      color: var(--muted);
+      margin-bottom: 30px;
+      font-size: 0.95rem;
+    }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 24px;
+      margin-bottom: 24px;
+      transition: background 0.3s, border-color 0.3s;
+    }
+    h2 {
+      color: var(--primary);
+      font-size: 1.25rem;
+      margin-bottom: 16px;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 8px;
+    }
+    h3 {
+      color: var(--text);
+      font-size: 1.05rem;
+      margin: 18px 0 10px;
+    }
+    p, li { margin-bottom: 10px; color: var(--text); }
+    ul { padding-left: 22px; margin-bottom: 12px; }
+    .formula {
+      background: var(--formula-bg);
+      border-left: 4px solid var(--primary);
+      padding: 12px 16px;
+      margin: 12px 0;
+      font-family: "SF Mono", Monaco, Consolas, monospace;
+      font-size: 0.9rem;
+      overflow-x: auto;
+      border-radius: 0 8px 8px 0;
+    }
+    .note {
+      background: var(--note-bg);
+      border: 1px solid var(--note-border);
+      border-radius: 8px;
+      padding: 12px 16px;
+      margin: 14px 0;
+      font-size: 0.9rem;
+      color: var(--note-text);
+    }
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+    @media (max-width: 600px) {
+      .form-grid { grid-template-columns: 1fr; }
+    }
+    label {
+      display: block;
+      font-size: 0.85rem;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+    input {
+      width: 100%;
+      padding: 12px 14px;
+      background: var(--input-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-size: 1rem;
+    }
+    input:focus {
+      outline: none;
+      border-color: var(--primary);
+    }
+    input[readonly] {
+      opacity: 0.7;
+    }
+    .btn {
+      display: block;
+      width: 100%;
+      padding: 14px;
+      background: var(--primary);
+      color: #0b0e11;
+      border: none;
+      border-radius: 8px;
+      font-size: 1.05rem;
+      font-weight: 600;
+      cursor: pointer;
+      margin-top: 20px;
+      transition: opacity 0.2s;
+    }
+    .btn:hover { opacity: 0.9; }
+    .result-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      margin-top: 20px;
+    }
+    @media (max-width: 600px) {
+      .result-grid { grid-template-columns: 1fr; }
+    }
+    .result-item {
+      background: var(--result-bg);
+      border-radius: 8px;
+      padding: 14px;
+      border: 1px solid var(--border);
+    }
+    .result-item .label {
+      font-size: 0.8rem;
+      color: var(--muted);
+      margin-bottom: 4px;
+    }
+    .result-item .value {
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: var(--primary);
+    }
+    .result-item .value.green { color: var(--green); }
+    .result-item .value.red { color: var(--red); }
+    .result-item .calc-detail {
+      font-size: 0.72rem;
+      color: var(--muted);
+      margin-top: 6px;
+      line-height: 1.4;
+      word-break: break-all;
+      display: none;
+      background: var(--formula-bg);
+      padding: 8px 10px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+    }
+    .result-item .calc-detail.show {
+      display: block;
+    }
+    .info-icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: var(--primary);
+      color: #0b0e11;
+      font-size: 0.7rem;
+      font-weight: 700;
+      cursor: pointer;
+      margin-left: 4px;
+      vertical-align: middle;
+      user-select: none;
+    }
+    .info-icon:hover {
+      opacity: 0.85;
+    }
+    .strike-table-wrap {
+      overflow-x: auto;
+      margin-top: 16px;
+    }
+    .strike-table-wrap table {
+      min-width: 600px;
+    }
+    .strike-table-wrap td, .strike-table-wrap th {
+      font-size: 0.85rem;
+      white-space: nowrap;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 14px 0;
+      font-size: 0.9rem;
+    }
+    th, td {
+      border: 1px solid var(--border);
+      padding: 10px 12px;
+      text-align: left;
+    }
+    th { background: var(--th-bg); color: var(--primary); }
+    .footer {
+      text-align: center;
+      color: var(--muted);
+      font-size: 0.8rem;
+      margin-top: 30px;
+      padding-top: 16px;
+      border-top: 1px solid var(--border);
+    }
+  </style>
+</head>
+<body>
+  <button class="theme-toggle" onclick="toggleTheme()" id="themeBtn">🌙 暗色模式</button>
+  <div class="container">
+    <h1>币安 ETH 卖出看跌期权计算器</h1>
+    <p class="subtitle">Short Put 保证金 · 可开数量 · 最大收益 · 完整指南</p>
+
+    <!-- 计算器 -->
+    <div class="card">
+      <h2>📊 实时计算器</h2>
+      <div class="form-grid">
+        <div>
+          <label>当前指数价格（USDT）</label>
+          <input type="number" id="indexPrice" value="1868" step="0.01" min="0">
+        </div>
+        <div>
+          <label>行权价 Strike（USDT）</label>
+          <input type="number" id="strike" value="1200" step="1" min="0">
+        </div>
+        <div>
+          <label>卖出权利金 Premium（USDT）</label>
+          <input type="number" id="premium" value="4.2" step="0.01" min="0">
+        </div>
+        <div>
+          <label>标记价格 Mark Price（USDT）</label>
+          <input type="number" id="markPrice" value="4.2" step="0.01" min="0">
+        </div>
+        <div>
+          <label>本金 / 可用余额（USDT）</label>
+          <input type="number" id="capital" value="15" step="0.01" min="0">
+        </div>
+        <div>
+          <label>合约单位（ETH 固定为 1）</label>
+          <input type="number" id="unit" value="1" step="0.01" min="0" readonly>
+        </div>
+      </div>
+      <button class="btn" onclick="calculate()">计算可开数量 & 收益</button>
+
+      <div id="results" style="display:none;">
+        <p style="font-size:0.85rem;color:var(--muted);margin-bottom:12px;">提示：点击每个结果旁的 <span class="info-icon" style="display:inline-flex;width:14px;height:14px;font-size:0.65rem;">i</span> 图标可查看详细计算过程</p>
+        <div class="result-grid">
+          <div class="result-item">
+            <div class="label">OTM 数量 <span class="info-icon" onclick="toggleDetail('otmDetail')">i</span></div>
+            <div class="value" id="otmResult">-</div>
+            <div class="calc-detail" id="otmDetail"></div>
+          </div>
+          <div class="result-item">
+            <div class="label">每张风险系数部分 <span class="info-icon" onclick="toggleDetail('riskDetail')">i</span></div>
+            <div class="value" id="riskResult">-</div>
+            <div class="calc-detail" id="riskDetail"></div>
+          </div>
+          <div class="result-item">
+            <div class="label">每张仓位初始保证金（约） <span class="info-icon" onclick="toggleDetail('imDetail')">i</span></div>
+            <div class="value" id="imPerContract">-</div>
+            <div class="calc-detail" id="imDetail"></div>
+          </div>
+          <div class="result-item">
+            <div class="label">每张净占用保证金（扣除权利金后） <span class="info-icon" onclick="toggleDetail('netImDetail')">i</span></div>
+            <div class="value" id="netImPer">-</div>
+            <div class="calc-detail" id="netImDetail"></div>
+          </div>
+          <div class="result-item">
+            <div class="label">最大可开数量（张） <span class="info-icon" onclick="toggleDetail('maxQtyDetail')">i</span></div>
+            <div class="value green" id="maxQty">-</div>
+            <div class="calc-detail" id="maxQtyDetail"></div>
+          </div>
+          <div class="result-item">
+            <div class="label">实际建议开仓数量（向下取整到 0.01） <span class="info-icon" onclick="toggleDetail('suggestQtyDetail')">i</span></div>
+            <div class="value green" id="suggestQty">-</div>
+            <div class="calc-detail" id="suggestQtyDetail"></div>
+          </div>
+          <div class="result-item">
+            <div class="label">收到总权利金 <span class="info-icon" onclick="toggleDetail('totalPremDetail')">i</span></div>
+            <div class="value" id="totalPremium">-</div>
+            <div class="calc-detail" id="totalPremDetail"></div>
+          </div>
+          <div class="result-item">
+            <div class="label">最大净利润（到期作废，估算） <span class="info-icon" onclick="toggleDetail('maxProfitDetail')">i</span></div>
+            <div class="value green" id="maxProfit">-</div>
+            <div class="calc-detail" id="maxProfitDetail"></div>
+          </div>
+          <div class="result-item">
+            <div class="label">最大收益率（相对本金） <span class="info-icon" onclick="toggleDetail('roiDetail')">i</span></div>
+            <div class="value green" id="roi">-</div>
+            <div class="calc-detail" id="roiDetail"></div>
+          </div>
+          <div class="result-item">
+            <div class="label">占用保证金总额（约） <span class="info-icon" onclick="toggleDetail('totalMarginDetail')">i</span></div>
+            <div class="value" id="totalMargin">-</div>
+            <div class="calc-detail" id="totalMarginDetail"></div>
+          </div>
+        </div>
+        <div class="note" style="margin-top:18px;">
+          ⚠️ 以上为近似计算。实际成交数量受实时标记价格、手续费、系统缓冲、最小下单精度（0.01）影响。手续费按约 0.03% 估算。点击 i 图标可查看详细计算过程。
+        </div>
+
+        <!-- 不同行权价对比表 -->
+        <h3 style="margin-top:28px;color:var(--primary);">不同行权价可开数量对比</h3>
+        <p style="font-size:0.85rem;color:var(--muted);margin-bottom:10px;">基于当前指数价格、权利金、标记价格、本金，列出从当前行权价到接近指数价格之间常见行权价的可开数量（假设权利金和标记价格不变，仅作对比参考）</p>
+        <div class="strike-table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>行权价</th>
+                <th>OTM</th>
+                <th>风险系数</th>
+                <th>每张净占用</th>
+                <th>最大可开数量</th>
+                <th>建议开仓数量</th>
+                <th>计算说明</th>
+              </tr>
+            </thead>
+            <tbody id="strikeCompareBody">
+            </tbody>
+          </table>
+        </div>
+        <div class="note" style="margin-top:12px;">
+          说明：此表假设权利金和标记价格保持不变。实际不同行权价的权利金差异很大，表中数量仅用于理解「行权价越高（越接近指数）→ OTM越小 → 保证金越高 → 可开数量越少」的规律。
+        </div>
+      </div>
+    </div>
+
+    <!-- 核心概念总结 -->
+    <div class="card">
+      <h2>📖 核心概念总结</h2>
+
+      <h3>1. 什么是卖出看跌期权（Short Put）？</h3>
+      <p>你作为卖方，收取买方支付的权利金。如果到期时 ETH 价格 ≥ 行权价，期权作废，你留下全部权利金；如果价格 < 行权价，买方行权，你需要承担差价损失。</p>
+
+      <h3>2. 卖出权利金 Premium vs 标记价格 Mark Price</h3>
+      <p><strong>卖出权利金（Premium）</strong>：你实际成交的价格，也就是买方付给你的钱。这是你真实收到的金额，决定了你的最大利润。</p>
+      <p><strong>标记价格（Mark Price）</strong>：币安系统用 Black-Scholes 模型实时计算的「合理理论价格」，主要用于计算保证金和未实现盈亏。它可能和你的成交价略有不同。</p>
+      <p><strong>两者一样吗？</strong> 不一定。成交瞬间两者通常很接近，但之后标记价格会随市场波动而变化，而你的成交权利金是固定的历史价格。计算器里默认把标记价格设成和权利金一样，方便估算；实际使用时建议以币安页面显示的最新标记价格为准。</p>
+
+      <h3>3. 标记价格浮动对最终利润的影响</h3>
+      <p>你已经收到了权利金，标记价格的浮动主要影响<strong>持仓期间</strong>，而不是最终结算结果。</p>
+      <table>
+        <thead>
+          <tr>
+            <th>方面</th>
+            <th>是否受标记价格影响</th>
+            <th>说明</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>你真实收到的钱</td>
+            <td>不影响</td>
+            <td>权利金是成交时就确定的，已经打到账户</td>
+          </tr>
+          <tr>
+            <td>持仓期间未实现盈亏</td>
+            <td><strong>影响</strong></td>
+            <td>标记价格涨 → 空头显示浮亏；标记价格跌 → 显示浮盈</td>
+          </tr>
+          <tr>
+            <td>保证金占用</td>
+            <td><strong>影响</strong></td>
+            <td>公式中有 + 标记价格，标记价格越高，需要的保证金越多</td>
+          </tr>
+          <tr>
+            <td>最终到期结算</td>
+            <td>几乎不影响</td>
+            <td>到期按内在价值结算，与中间标记价格无关</td>
+          </tr>
+        </tbody>
+      </table>
+      <p><strong>关键结论：</strong></p>
+      <ul>
+        <li>只要到期时 ETH 结算价 ≥ 行权价，期权作废，你最终就赚到全部权利金 − 手续费。</li>
+        <li>中间标记价格怎么波动，都只是“纸面盈亏”，不会变成额外现金。</li>
+        <li>只有在你<strong>提前平仓</strong>（买回这个期权）时，当时的成交价/标记价格才会真正决定最终盈亏。</li>
+      </ul>
+      <div class="note">
+        举例：你 4.2 卖出 0.07 张，收到约 0.294 USDT。持仓期间标记价跌到 2 或涨到 8，都只影响浮盈浮亏和保证金。到期只要 ETH ≥ 1200，最终到手仍是那约 0.294 USDT。
+      </div>
+
+      <h3>4. OTM 数量（价外数量）</h3>
+      <p>衡量期权当前有多“虚值”。</p>
+      <div class="formula">
+        看跌期权 OTM 数量 = max(指数价格 − 行权价, 0)
+      </div>
+      <p>OTM 越大 → 越虚值 → 风险越低 → 保证金要求可能越低。</p>
+
+      <h3>5. 为什么用「指数价格」而不是行权价？</h3>
+      <p>保证金的核心是覆盖<strong>标的资产当前价值和波动风险</strong>。行权价只通过 OTM 数量间接影响结果，公式主体必须使用当前指数价格。</p>
+
+      <h3>6. 仓位初始保证金公式（卖空期权）</h3>
+      <div class="formula">
+        仓位初始保证金 = [max(指数价格 × 10%, 指数价格 × 15% − OTM数量) × 合约单位 + 标记价格] × |仓位数量|
+      </div>
+      <p>ETH 合约单位 = 1。</p>
+
+      <h3>7. 下单时净占用（近似）</h3>
+      <div class="formula">
+        每张净占用 ≈ max(指数价格×10%, 指数价格×15%−OTM) × 单位 + 标记价格 − 订单价格 + 手续费
+      </div>
+      <p>因为你已经收到权利金，可以抵扣一部分保证金要求。</p>
+
+      <h3>8. 保证金跟权利金有关系吗？</h3>
+      <p>有关系，而且比较直接。</p>
+      <ul>
+        <li><strong>仓位初始保证金</strong>公式里包含「+ 标记价格」。</li>
+        <li><strong>下单净占用</strong>会减去你收到的权利金（订单价格），权利金越高，实际需要锁定的本金越少。</li>
+        <li>ETH 指数价格决定主要风险缓冲，权利金和标记价格会影响最终占用金额。</li>
+        <li>你的本金只决定能开多大仓位，不直接进入保证金公式。</li>
+      </ul>
+      <table>
+        <thead>
+          <tr>
+            <th>因素</th>
+            <th>是否影响保证金</th>
+            <th>影响方式</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>ETH 指数价格</td>
+            <td><strong>强相关</strong></td>
+            <td>决定主要风险缓冲（10%/15%）</td>
+          </tr>
+          <tr>
+            <td>行权价（通过 OTM）</td>
+            <td>相关</td>
+            <td>影响价外程度，从而影响风险系数</td>
+          </tr>
+          <tr>
+            <td>标记价格</td>
+            <td><strong>相关</strong></td>
+            <td>公式里直接加上去</td>
+          </tr>
+          <tr>
+            <td>权利金（成交价）</td>
+            <td><strong>相关</strong></td>
+            <td>开仓时可抵扣一部分保证金</td>
+          </tr>
+          <tr>
+            <td>本金金额</td>
+            <td>间接相关</td>
+            <td>只决定最多能开多少张</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>9. 到期收益</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>到期结算价</th>
+            <th>结果</th>
+            <th>你的收益</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>≥ 行权价</td>
+            <td>期权作废</td>
+            <td>全部权利金 − 手续费（最大利润）</td>
+          </tr>
+          <tr>
+            <td>&lt; 行权价</td>
+            <td>买方行权</td>
+            <td>权利金 − (行权价 − 结算价) × 数量 − 相关费用</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- 完整计算示例 -->
+    <div class="card">
+      <h2>🧮 完整计算示例（回顾）</h2>
+      <p>合约：ETH-260925-1200-P，权利金 4.2，本金 15 USDT，指数约 1868。</p>
+      <ul>
+        <li>OTM = max(1868 − 1200, 0) = 668</li>
+        <li>指数 × 10% = 186.8</li>
+        <li>指数 × 15% − OTM = 280.2 − 668 = 负数 → 取 186.8</li>
+        <li>每张仓位 IM ≈ 186.8 + 4.2 = 191 USDT</li>
+        <li>扣除权利金后每张净占用 ≈ 186.8 USDT</li>
+        <li>15 ÷ 约 190~214 ≈ 可开 <strong>0.07 张</strong></li>
+        <li>最大利润 ≈ 4.2 × 0.07 − 手续费 ≈ 0.26~0.28 USDT</li>
+      </ul>
+    </div>
+
+    <!-- 使用注意 -->
+    <div class="card">
+      <h2>⚠️ 使用注意</h2>
+      <ul>
+        <li>本工具仅供学习与估算，不构成投资建议。</li>
+        <li>实际保证金以币安实时系统计算为准（标记价格、手续费、账户模式都会影响）。</li>
+        <li>卖出期权风险较大，尤其是深度价内或临近到期时，请严格控制仓位。</li>
+        <li>最小下单数量通常为 0.01 张。</li>
+        <li>指数价格请自行在币安期权页面查看最新值后输入。</li>
+      </ul>
+    </div>
+
+    <div class="footer">
+      基于币安期权官方保证金规则整理 · 仅供个人学习使用<br>
+      合约单位、费率等可能随官方调整而变化，请以币安最新公告为准
+    </div>
+  </div>
+
+  <script>
+    function calculate() {
+      const index = parseFloat(document.getElementById('indexPrice').value) || 0;
+      const strike = parseFloat(document.getElementById('strike').value) || 0;
+      const premium = parseFloat(document.getElementById('premium').value) || 0;
+      const mark = parseFloat(document.getElementById('markPrice').value) || premium;
+      const capital = parseFloat(document.getElementById('capital').value) || 0;
+      const unit = parseFloat(document.getElementById('unit').value) || 1;
+
+      // OTM for Put
+      const otm = Math.max(index - strike, 0);
+
+      // Risk component
+      const risk10 = index * 0.10;
+      const risk15 = index * 0.15 - otm;
+      const risk = Math.max(risk10, risk15);
+
+      // Position Initial Margin per contract
+      const imPer = risk * unit + mark;
+
+      // Net margin per contract after receiving premium (approximate)
+      const netImPer = Math.max(risk * unit + mark - premium, 0) + (index * unit * 0.0003); // rough fee
+
+      // Max quantity
+      let maxQty = netImPer > 0 ? capital / netImPer : 0;
+      // Suggest rounded down to 0.01
+      let suggestQty = Math.floor(maxQty * 100) / 100;
+
+      // Total premium received
+      const totalPrem = premium * suggestQty;
+
+      // Rough max profit (ignore exact fee for display, show estimate)
+      const estFee = Math.min(index * unit * 0.0003, premium * 0.1) * suggestQty;
+      const maxProfit = totalPrem - estFee;
+
+      // ROI
+      const roi = capital > 0 ? (maxProfit / capital * 100) : 0;
+
+      // Total margin used
+      const totalMargin = netImPer * suggestQty;
+
+      // Display values
+      document.getElementById('otmResult').textContent = otm.toFixed(2);
+      document.getElementById('riskResult').textContent = risk.toFixed(2);
+      document.getElementById('imPerContract').textContent = imPer.toFixed(2) + ' USDT';
+      document.getElementById('netImPer').textContent = netImPer.toFixed(2) + ' USDT';
+      document.getElementById('maxQty').textContent = maxQty.toFixed(4);
+      document.getElementById('suggestQty').textContent = suggestQty.toFixed(2);
+      document.getElementById('totalPremium').textContent = totalPrem.toFixed(4) + ' USDT';
+      document.getElementById('maxProfit').textContent = maxProfit.toFixed(4) + ' USDT';
+      document.getElementById('roi').textContent = roi.toFixed(2) + ' %';
+      document.getElementById('totalMargin').textContent = totalMargin.toFixed(2) + ' USDT';
+
+      // Display calculation details (hidden by default, shown on icon click)
+      document.getElementById('otmDetail').innerHTML = `公式：max(指数价格 − 行权价, 0)<br>代入：max(${index} − ${strike}, 0) = <strong>${otm.toFixed(2)}</strong>`;
+      document.getElementById('riskDetail').innerHTML = `公式：max(指数×10%, 指数×15% − OTM)<br>指数×10% = ${risk10.toFixed(2)}<br>指数×15% − OTM = ${risk15.toFixed(2)}<br>取较大值 = <strong>${risk.toFixed(2)}</strong>`;
+      document.getElementById('imDetail').innerHTML = `公式：风险系数 × 合约单位 + 标记价格<br>${risk.toFixed(2)} × ${unit} + ${mark} = <strong>${imPer.toFixed(2)}</strong>`;
+      document.getElementById('netImDetail').innerHTML = `公式：(风险系数 × 单位 + 标记价格 − 权利金) + 手续费<br>(${risk.toFixed(2)}×${unit} + ${mark} − ${premium}) + 手续费 ≈ <strong>${netImPer.toFixed(2)}</strong><br>权利金越高，净占用越低`;
+      document.getElementById('maxQtyDetail').innerHTML = `公式：本金 ÷ 每张净占用<br>${capital} ÷ ${netImPer.toFixed(2)} ≈ <strong>${maxQty.toFixed(4)}</strong>`;
+      document.getElementById('suggestQtyDetail').innerHTML = `向下取整到 0.01（币安最小精度）<br>${maxQty.toFixed(4)} → <strong>${suggestQty.toFixed(2)}</strong>`;
+      document.getElementById('totalPremDetail').innerHTML = `公式：权利金 × 建议开仓数量<br>${premium} × ${suggestQty.toFixed(2)} = <strong>${totalPrem.toFixed(4)}</strong>`;
+      document.getElementById('maxProfitDetail').innerHTML = `公式：总权利金 − 估算手续费<br>${totalPrem.toFixed(4)} − ${estFee.toFixed(4)} ≈ <strong>${maxProfit.toFixed(4)}</strong><br>前提：到期作废（结算价 ≥ 行权价）`;
+      document.getElementById('roiDetail').innerHTML = `公式：最大净利润 ÷ 本金 × 100%<br>${maxProfit.toFixed(4)} ÷ ${capital} × 100% ≈ <strong>${roi.toFixed(2)}%</strong>`;
+      document.getElementById('totalMarginDetail').innerHTML = `公式：每张净占用 × 建议开仓数量<br>${netImPer.toFixed(2)} × ${suggestQty.toFixed(2)} ≈ <strong>${totalMargin.toFixed(2)}</strong>`;
+
+      // Build strike comparison table
+      buildStrikeCompareTable(index, premium, mark, capital, unit, strike);
+
+      document.getElementById('results').style.display = 'block';
+    }
+
+    function toggleDetail(id) {
+      const el = document.getElementById(id);
+      if (!el) return;
+      // Close other details
+      document.querySelectorAll('.calc-detail.show').forEach(function(d) {
+        if (d.id !== id) d.classList.remove('show');
+      });
+      el.classList.toggle('show');
+    }
+
+    function buildStrikeCompareTable(index, premium, mark, capital, unit, currentStrike) {
+      const tbody = document.getElementById('strikeCompareBody');
+      if (!tbody) return;
+      tbody.innerHTML = '';
+
+      // Generate strikes from currentStrike up toward index, in reasonable steps
+      // For puts, higher strike = less OTM = higher margin = fewer contracts
+      let strikes = [];
+      const step = index > 3000 ? 100 : (index > 1000 ? 50 : 25);
+      // Start from a lower strike and go up to near index
+      let start = Math.min(currentStrike, Math.floor(index * 0.5 / step) * step);
+      if (start < 100) start = 100;
+      for (let s = start; s <= index * 0.98; s += step) {
+        strikes.push(s);
+      }
+      // Ensure current strike is included
+      if (!strikes.includes(currentStrike) && currentStrike > 0) {
+        strikes.push(currentStrike);
+        strikes.sort((a, b) => a - b);
+      }
+
+      // Limit to reasonable number
+      if (strikes.length > 20) {
+        // Keep current and sample
+        const filtered = [];
+        const step2 = Math.ceil(strikes.length / 15);
+        for (let i = 0; i < strikes.length; i += step2) {
+          filtered.push(strikes[i]);
+        }
+        if (!filtered.includes(currentStrike)) filtered.push(currentStrike);
+        filtered.sort((a, b) => a - b);
+        strikes = filtered;
+      }
+
+      strikes.forEach(function(s) {
+        const otmS = Math.max(index - s, 0);
+        const risk10S = index * 0.10;
+        const risk15S = index * 0.15 - otmS;
+        const riskS = Math.max(risk10S, risk15S);
+        const netImS = Math.max(riskS * unit + mark - premium, 0) + (index * unit * 0.0003);
+        const maxQtyS = netImS > 0 ? capital / netImS : 0;
+        const suggestS = Math.floor(maxQtyS * 100) / 100;
+        const isCurrent = Math.abs(s - currentStrike) < 0.01;
+
+        const tr = document.createElement('tr');
+        if (isCurrent) {
+          tr.style.background = 'rgba(240, 185, 11, 0.12)';
+        }
+        tr.innerHTML = `
+          <td>${s}${isCurrent ? ' <strong>(当前)</strong>' : ''}</td>
+          <td>${otmS.toFixed(0)}</td>
+          <td>${riskS.toFixed(2)}</td>
+          <td>${netImS.toFixed(2)}</td>
+          <td>${maxQtyS.toFixed(4)}</td>
+          <td><strong>${suggestS.toFixed(2)}</strong></td>
+          <td style="font-size:0.75rem;white-space:normal;max-width:220px;">
+            OTM=max(${index}-${s},0)=${otmS.toFixed(0)}；
+            风险=max(${risk10S.toFixed(0)}, ${(index*0.15).toFixed(0)}-${otmS.toFixed(0)})=${riskS.toFixed(2)}；
+            净占用≈${riskS.toFixed(2)}+${mark}-${premium}≈${netImS.toFixed(2)}；
+            可开=${capital}÷${netImS.toFixed(2)}≈${maxQtyS.toFixed(4)}
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    // Theme toggle
+    function toggleTheme() {
+      const html = document.documentElement;
+      const btn = document.getElementById('themeBtn');
+      const current = html.getAttribute('data-theme');
+      if (current === 'light') {
+        html.removeAttribute('data-theme');
+        btn.textContent = '🌙 暗色模式';
+        localStorage.setItem('theme', 'dark');
+      } else {
+        html.setAttribute('data-theme', 'light');
+        btn.textContent = '☀️ 亮色模式';
+        localStorage.setItem('theme', 'light');
+      }
+    }
+
+    // Auto calculate on load + restore theme
+    window.onload = function() {
+      const saved = localStorage.getItem('theme');
+      if (saved === 'light') {
+        document.documentElement.setAttribute('data-theme', 'light');
+        document.getElementById('themeBtn').textContent = '☀️ 亮色模式';
+      }
+      calculate();
+    };
+  </script>
+</body>
+</html>
